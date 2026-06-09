@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Saya - Inventory & HR</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container h2 { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-bottom: 20px; }
+        .greeting { color: #fff; opacity: 0.9; margin-bottom: 24px; font-size: 14px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600; }
+        .stat-card .value { font-size: 28px; color: #1A4D8C; font-weight: 700; margin-top: 4px; }
+        .stat-card .meta { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+        .stat-card.green .value { color: #15803d; }
+        .stat-card.orange .value { color: #ea580c; }
+
+        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .action-card { background: #fff; padding: 24px; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s; text-decoration: none; color: inherit; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .action-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .action-card i { font-size: 32px; color: #1A4D8C; margin-bottom: 12px; }
+        .action-card h3 { margin: 0 0 6px; font-size: 16px; color: #1e293b; }
+        .action-card p { margin: 0; font-size: 13px; color: #64748b; }
+
+        .recent-card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .recent-card h3 { margin: 0 0 14px; color: #1A4D8C; font-size: 16px; }
+        .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .recent-item:last-child { border: none; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-approved { background: #dcfce7; color: #15803d; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
+        .badge-cancelled { background: #f1f5f9; color: #64748b; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>PT Wiratama Globalindo Jaya</h1>
+        <div class="navbar-menu">
+            <a href="dashboard-karyawan.html" data-page="dashboard-karyawan">Dashboard</a>
+            <a href="ajukan-izin.html" data-page="ajukan-izin">Ajukan Izin</a>
+            <a href="pengajuan-saya.html" data-page="pengajuan-saya">Pengajuan Saya</a>
+            <a href="profil-saya.html" data-page="profil-saya">Profil Saya</a>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+    <script>
+        (function() {
+            const path = window.location.pathname.split('/').pop().replace('.html', '');
+            document.querySelectorAll('.navbar-menu a[data-page]').forEach(a => {
+                if (a.dataset.page === path) a.classList.add('active');
+            });
+        })();
+    </script>
+
+    <div class="container">
+        <h2><i class="fas fa-home"></i> <span id="greeting">Halo!</span></h2>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="label">Saldo Cuti Tahunan</div>
+                <div class="value" id="saldoSisa">-</div>
+                <div class="meta" id="saldoDetail">-</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="label">Pengajuan Pending</div>
+                <div class="value" id="pengajuanPending">0</div>
+                <div class="meta">Menunggu review HR</div>
+            </div>
+            <div class="stat-card green">
+                <div class="label">Pengajuan Approved (Bulan Ini)</div>
+                <div class="value" id="pengajuanApproved">0</div>
+                <div class="meta">Sudah disetujui</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Inventaris Dipakai</div>
+                <div class="value" id="invCount">0</div>
+                <div class="meta" id="invDetail">Laptop & HP</div>
+            </div>
+        </div>
+
+        <h3 style="color:#fff;margin:8px 0 12px;">Aksi Cepat</h3>
+        <div class="quick-actions">
+            <a href="ajukan-izin.html" class="action-card">
+                <i class="fas fa-paper-plane"></i>
+                <h3>Ajukan Izin</h3>
+                <p>Cuti, sakit, izin pribadi, WFH, dll</p>
+            </a>
+            <a href="pengajuan-saya.html" class="action-card">
+                <i class="fas fa-list-alt"></i>
+                <h3>Pengajuan Saya</h3>
+                <p>Lihat status & riwayat pengajuan</p>
+            </a>
+            <a href="profil-saya.html" class="action-card">
+                <i class="fas fa-user"></i>
+                <h3>Profil Saya</h3>
+                <p>Lihat data diri & inventaris</p>
+            </a>
+        </div>
+
+        <div class="recent-card">
+            <h3>Pengajuan Terbaru</h3>
+            <div id="recentPengajuan"><p style="color:#94a3b8;text-align:center;padding:20px;">Belum ada pengajuan.</p></div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.href = 'index.html';
+
+        // Halaman ini khusus karyawan. Admin/HR tetap bisa akses untuk preview,
+        // tapi data yang ditampilkan akan terbatas (mereka tidak punya karyawan_id).
+        const _user = (() => { try { return JSON.parse(localStorage.getItem('auth_user')); } catch(e) { return null; } })();
+        if (_user && !_user.karyawan_id) {
+            // Tampilkan pesan ramah, redirect ke dashboard HR
+            if (confirm('Halaman ini khusus untuk karyawan dengan profil terdaftar. Akun Anda (' + _user.role + ') tidak memiliki data karyawan. Kembali ke Dashboard?')) {
+                window.location.href = ['admin','hr'].includes(_user.role) ? 'dashboard.html' : 'index.html';
+            }
+        }
+
+        const user = getCurrentUser();
+        const isHR = ['admin', 'hr'].includes(user?.role);
+
+        // Navbar sekarang sudah hardcoded di HTML, tidak perlu di-build via JS
+
+        // Salam
+        const jam = new Date().getHours();
+        let salam = 'Halo';
+        if (jam < 11) salam = 'Selamat pagi';
+        else if (jam < 15) salam = 'Selamat siang';
+        else if (jam < 18) salam = 'Selamat sore';
+        else salam = 'Selamat malam';
+        document.getElementById('greeting').textContent = `${salam}, ${user?.nama_lengkap || user?.username}!`;
+
+        async function loadData() {
+            // Saldo cuti
+            try {
+                const res = await apiFetch(`${API_URL}/me/saldo-cuti`);
+                const j = await res.json();
+                if (j.success && j.data) {
+                    document.getElementById('saldoSisa').textContent = j.data.sisa + ' hari';
+                    document.getElementById('saldoDetail').textContent = `${j.data.terpakai} / ${j.data.jatah} hari terpakai`;
+                }
+            } catch(e) { document.getElementById('saldoSisa').textContent = 'N/A'; }
+
+            // Pengajuan saya
+            try {
+                const res = await apiFetch(`${API_URL}/me/pengajuan`);
+                const j = await res.json();
+                const pengajuan = j.data || [];
+
+                const pending = pengajuan.filter(p => p.status === 'pending').length;
+                const bulanIni = new Date().getMonth();
+                const approvedBulanIni = pengajuan.filter(p => p.status === 'approved' && new Date(p.approved_at).getMonth() === bulanIni).length;
+
+                document.getElementById('pengajuanPending').textContent = pending;
+                document.getElementById('pengajuanApproved').textContent = approvedBulanIni;
+
+                // Recent
+                const recent = pengajuan.slice(0, 5);
+                const recentDiv = document.getElementById('recentPengajuan');
+                if (recent.length === 0) {
+                    recentDiv.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:20px;">Belum ada pengajuan. <a href="ajukan-izin.html">Buat sekarang →</a></p>';
+                } else {
+                    recentDiv.innerHTML = recent.map(p => `
+                        <div class="recent-item">
+                            <div>
+                                <strong>${p.jenis_izin.replace(/_/g, ' ')}</strong>
+                                <div style="font-size:12px;color:#64748b;">${formatDate(p.tanggal_mulai)} - ${formatDate(p.tanggal_selesai)} (${p.jumlah_hari} hari)</div>
+                            </div>
+                            <span class="badge badge-${p.status}">${p.status}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {}
+
+            // Inventaris
+            try {
+                const res = await apiFetch(`${API_URL}/me/inventaris`);
+                const j = await res.json();
+                if (j.success) {
+                    const total = (j.data.laptop?.length || 0) + (j.data.handphone?.length || 0);
+                    document.getElementById('invCount').textContent = total;
+                    document.getElementById('invDetail').textContent = `${j.data.laptop?.length || 0} laptop, ${j.data.handphone?.length || 0} HP`;
+                }
+            } catch(e) {}
+        }
+
+        function formatDate(d) {
+            return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

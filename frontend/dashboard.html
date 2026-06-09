@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Inventory Karyawan</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        /* ── TAMBAHAN KHUSUS DASHBOARD (tidak override style.css) ── */
+
+        .container h2 {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .page-subtitle {
+            color: rgba(255,255,255,0.65);
+            font-size: 13px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .btn-refresh {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.4);
+            padding: 8px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .btn-refresh:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: white;
+            transform: translateY(-2px);
+        }
+        .btn-refresh.loading i { animation: spin 0.7s linear infinite; }
+
+        /* Alert banner */
+        .alert-banner {
+            background: rgba(245,158,11,0.15);
+            border: 1px solid rgba(245,158,11,0.5);
+            border-radius: 15px;
+            padding: 14px 20px;
+            margin-bottom: 25px;
+            color: #fef3c7;
+            font-size: 13px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* ── STATS GRID (override ukuran angka) ── */
+        .stats-grid-dash {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .stat-card-dash {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
+            padding: 22px 24px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(26,77,140,0.15);
+            border: 1px solid rgba(43,110,176,0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .stat-card-dash::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--biru-tua), var(--biru-muda), var(--abu-tua));
+        }
+        .stat-card-dash:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(26,77,140,0.2);
+        }
+        .stat-icon-dash {
+            width: 50px; height: 50px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .ic-biru   { background: rgba(26,77,140,0.1);  color: var(--biru-tua); }
+        .ic-hijau  { background: rgba(16,185,129,0.1); color: #059669; }
+        .ic-kuning { background: rgba(245,158,11,0.1); color: #d97706; }
+        .ic-teal   { background: rgba(13,148,136,0.1); color: #0d9488; }
+        .ic-orange { background: rgba(234,88,12,0.1);  color: #ea580c; }
+        .ic-pink   { background: rgba(219,39,119,0.1); color: #db2777; }
+        .ic-cyan   { background: rgba(8,145,178,0.1);  color: #0891b2; }
+        .ic-ungu   { background: rgba(124,58,237,0.1); color: #7c3aed; }
+
+        .stat-body-dash .label {
+            font-size: 11px;
+            color: var(--abu-muda);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-body-dash .number {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--biru-tua), var(--biru-muda));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+        }
+        .stat-body-dash .sub {
+            font-size: 11px;
+            color: var(--abu-muda);
+            margin-top: 2px;
+        }
+
+        /* ── INV STATUS CARDS ── */
+        .inv-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .inv-card {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 22px;
+            box-shadow: 0 15px 35px rgba(26,77,140,0.12);
+            border: 1px solid rgba(43,110,176,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .inv-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--biru-tua), var(--biru-muda));
+        }
+        .inv-card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .inv-card-header .title {
+            font-size: 13px; font-weight: 700; color: var(--biru-tua);
+            display: flex; align-items: center; gap: 7px;
+        }
+        .inv-card-header .total-badge {
+            font-size: 22px; font-weight: 800;
+            background: linear-gradient(135deg, var(--biru-tua), var(--biru-muda));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .inv-status-list { display: flex; flex-direction: column; gap: 9px; }
+        .inv-status-item {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 12.5px;
+        }
+        .dot-label { display: flex; align-items: center; gap: 7px; color: #374151; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .dot.hijau  { background: #22c55e; }
+        .dot.biru   { background: #3b82f6; }
+        .dot.kuning { background: #f59e0b; }
+        .inv-status-item .count { font-weight: 700; color: var(--biru-tua); }
+        .inv-progress {
+            height: 5px; background: #e5e7eb; border-radius: 4px;
+            margin-top: 13px; overflow: hidden; display: flex;
+        }
+        .inv-progress span { height: 100%; border-radius: 4px; transition: width .6s ease; }
+
+        /* ── CHART & TABLE ROW ── */
+        .dash-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .dash-grid-3-2 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .dash-card {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 15px 35px rgba(26,77,140,0.12);
+            border: 1px solid rgba(43,110,176,0.1);
+        }
+        .dash-card h4 {
+            color: var(--biru-tua);
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(26,77,140,0.08);
+        }
+        .dash-card h4 i { color: var(--biru-muda); }
+
+        /* dashboard table */
+        .dash-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+        .dash-table thead th {
+            background: linear-gradient(135deg, rgba(26,77,140,0.06), rgba(43,110,176,0.06));
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--biru-tua);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 0;
+        }
+        .dash-table thead th:first-child { border-radius: 10px 0 0 10px; }
+        .dash-table thead th:last-child  { border-radius: 0 10px 10px 0; }
+        .dash-table td {
+            padding: 10px 12px;
+            background: white;
+            border-bottom: 1px solid #e0e7ff;
+            color: var(--abu-tua);
+            font-size: 12.5px;
+        }
+        .dash-table tr:last-child td { border-bottom: none; }
+        .dash-table tr:hover td {
+            background: linear-gradient(135deg, rgba(26,77,140,0.02), rgba(43,110,176,0.02));
+        }
+
+        /* status badge */
+        .badge-status {
+            display: inline-block; padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+        }
+        .badge-status.tersedia  { background: #dcfce7; color: #166534; }
+        .badge-status.digunakan { background: #dbeafe; color: #1e40af; }
+        .badge-status.servis    { background: #fef3c7; color: #92400e; }
+        .badge-status.rusak     { background: #fee2e2; color: #991b1b; }
+
+        .empty-row td {
+            text-align: center; padding: 28px;
+            color: var(--abu-muda); font-style: italic;
+        }
+
+        @media (max-width: 1100px) {
+            .dash-grid-3   { grid-template-columns: 1fr 1fr; }
+            .dash-grid-3-2 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 700px) {
+            .stats-grid-dash { grid-template-columns: 1fr 1fr; }
+            .inv-row          { grid-template-columns: 1fr 1fr; }
+            .dash-grid-3      { grid-template-columns: 1fr; }
+        }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1A4D8C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PT Wiratama">
+    <link rel="apple-touch-icon" href="img/pwa/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="img/pwa/icon-192.png">
+</head>
+<body>
+    <!-- NAVBAR (sama persis dengan halaman lain) -->
+    
+    
+
+    <div class="container">
+        <h2>Dashboard</h2>
+        <div class="page-subtitle">
+            <span id="lastUpdate">Memuat data...</span>
+            <button class="btn-refresh" onclick="loadAll()" id="btnRefresh">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+
+        <!-- Alert banner -->
+        <div class="alert-banner" id="alertBanner">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="alertText"></span>
+        </div>
+
+        <!-- ── ROW 1: STAT CARDS ── -->
+        <div class="stats-grid-dash">
+            <div class="stat-card-dash">
+                <div class="stat-icon-dash ic-biru"><i class="fas fa-users"></i></div>
+                <div class="stat-body-dash">
+                    <div class="label">Total Karyawan</div>
+                    <div class="number" id="sKaryawan">—</div>
+                    <div class="sub" id="sDivisi">— divisi</div>
+                </div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="stat-icon-dash ic-teal"><i class="fas fa-laptop"></i></div>
+                <div class="stat-body-dash">
+                    <div class="label">Laptop Inventaris</div>
+                    <div class="number" id="sLaptop">—</div>
+                    <div class="sub" id="sLaptopSub">memuat...</div>
+                </div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="stat-icon-dash ic-orange"><i class="fas fa-car"></i></div>
+                <div class="stat-body-dash">
+                    <div class="label">Kendaraan</div>
+                    <div class="number" id="sKendaraan">—</div>
+                    <div class="sub" id="sKendaraanSub">memuat...</div>
+                </div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="stat-icon-dash ic-pink"><i class="fas fa-print"></i></div>
+                <div class="stat-body-dash">
+                    <div class="label">Printer</div>
+                    <div class="number" id="sPrinter">—</div>
+                    <div class="sub" id="sPrinterSub">memuat...</div>
+                </div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="stat-icon-dash ic-cyan"><i class="fas fa-mobile-alt"></i></div>
+                <div class="stat-body-dash">
+                    <div class="label">Handphone</div>
+                    <div class="number" id="sHP">—</div>
+                    <div class="sub" id="sHPSub">memuat...</div>
+                </div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="stat-icon-dash ic-hijau"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-body-dash">
+                    <div class="label">Aset Tersedia</div>
+                    <div class="number" id="sTersedia">—</div>
+                    <div class="sub">siap digunakan</div>
+                </div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="stat-icon-dash ic-kuning"><i class="fas fa-tools"></i></div>
+                <div class="stat-body-dash">
+                    <div class="label">Servis / Rusak</div>
+                    <div class="number" id="sMasalah">—</div>
+                    <div class="sub">perlu perhatian</div>
+                </div>
+            </div>
+            <div class="stat-card-dash">
+                <div class="stat-icon-dash ic-ungu"><i class="fas fa-cube"></i></div>
+                <div class="stat-body-dash">
+                    <div class="label">Total Semua Aset</div>
+                    <div class="number" id="sTotal">—</div>
+                    <div class="sub">seluruh inventaris</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── ROW 2: STATUS PER KATEGORI ── -->
+        <div class="inv-row">
+            <div class="inv-card">
+                <div class="inv-card-header">
+                    <div class="title"><i class="fas fa-laptop"></i> Laptop</div>
+                    <div class="total-badge" id="invLaptopTotal">0</div>
+                </div>
+                <div class="inv-status-list">
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot hijau"></span>Tersedia</div>
+                        <span class="count" id="invLaptopTersedia">0</span>
+                    </div>
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot biru"></span>Digunakan</div>
+                        <span class="count" id="invLaptopDigunakan">0</span>
+                    </div>
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot kuning"></span>Servis/Rusak</div>
+                        <span class="count" id="invLaptopMasalah">0</span>
+                    </div>
+                </div>
+                <div class="inv-progress" id="invLaptopBar"></div>
+            </div>
+            <div class="inv-card">
+                <div class="inv-card-header">
+                    <div class="title"><i class="fas fa-car"></i> Kendaraan</div>
+                    <div class="total-badge" id="invKendaraanTotal">0</div>
+                </div>
+                <div class="inv-status-list">
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot hijau"></span>Tersedia</div>
+                        <span class="count" id="invKendaraanTersedia">0</span>
+                    </div>
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot biru"></span>Digunakan</div>
+                        <span class="count" id="invKendaraanDigunakan">0</span>
+                    </div>
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot kuning"></span>Servis/Rusak</div>
+                        <span class="count" id="invKendaraanMasalah">0</span>
+                    </div>
+                </div>
+                <div class="inv-progress" id="invKendaraanBar"></div>
+            </div>
+            <div class="inv-card">
+                <div class="inv-card-header">
+                    <div class="title"><i class="fas fa-print"></i> Printer</div>
+                    <div class="total-badge" id="invPrinterTotal">0</div>
+                </div>
+                <div class="inv-status-list">
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot hijau"></span>Tersedia</div>
+                        <span class="count" id="invPrinterTersedia">0</span>
+                    </div>
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot biru"></span>Aktif</div>
+                        <span class="count" id="invPrinterDigunakan">0</span>
+                    </div>
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot kuning"></span>Servis/Rusak</div>
+                        <span class="count" id="invPrinterMasalah">0</span>
+                    </div>
+                </div>
+                <div class="inv-progress" id="invPrinterBar"></div>
+            </div>
+            <div class="inv-card">
+                <div class="inv-card-header">
+                    <div class="title"><i class="fas fa-mobile-alt"></i> Handphone</div>
+                    <div class="total-badge" id="invHPTotal">0</div>
+                </div>
+                <div class="inv-status-list">
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot hijau"></span>Tersedia</div>
+                        <span class="count" id="invHPTersedia">0</span>
+                    </div>
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot biru"></span>Digunakan</div>
+                        <span class="count" id="invHPDigunakan">0</span>
+                    </div>
+                    <div class="inv-status-item">
+                        <div class="dot-label"><span class="dot kuning"></span>Servis/Rusak</div>
+                        <span class="count" id="invHPMasalah">0</span>
+                    </div>
+                </div>
+                <div class="inv-progress" id="invHPBar"></div>
+            </div>
+        </div>
+
+        <!-- ── ROW 3: CHARTS ── -->
+        <div class="dash-grid-3">
+            <div class="dash-card">
+                <h4><i class="fas fa-chart-pie"></i> Komposisi Aset</h4>
+                <div style="position:relative;height:200px;"><canvas id="chartDonut"></canvas></div>
+            </div>
+            <div class="dash-card">
+                <h4><i class="fas fa-chart-bar"></i> Karyawan per Divisi</h4>
+                <div style="position:relative;height:200px;"><canvas id="chartDivisi"></canvas></div>
+            </div>
+            <div class="dash-card">
+                <h4><i class="fas fa-chart-bar"></i> Status Semua Aset</h4>
+                <div style="position:relative;height:200px;"><canvas id="chartStatus"></canvas></div>
+            </div>
+        </div>
+
+        <!-- ── ROW 4: TABEL ── -->
+        <div class="dash-grid-3-2">
+            <div class="dash-card">
+                <h4><i class="fas fa-laptop"></i> Laptop Sedang Digunakan Karyawan</h4>
+                <table class="dash-table">
+                    <thead><tr>
+                        <th>No. Inventaris</th>
+                        <th>Merek / Model</th>
+                        <th>Digunakan Oleh</th>
+                        <th>ID Karyawan</th>
+                        <th>Status</th>
+                    </tr></thead>
+                    <tbody id="tblLaptopDigunakan">
+                        <tr class="empty-row"><td colspan="5">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="dash-card">
+                <h4><i class="fas fa-users"></i> Karyawan Terbaru</h4>
+                <table class="dash-table">
+                    <thead><tr>
+                        <th>ID</th><th>Nama</th><th>Divisi</th>
+                    </tr></thead>
+                    <tbody id="tblKaryawan">
+                        <tr class="empty-row"><td colspan="3">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script src="layout.js"></script>
+    <script src="pwa-register.js"></script>
+    <script>
+        // Cek login: harus ada auth_token (JWT) dari login baru
+        if (!localStorage.getItem('auth_token')) {
+            window.location.href = 'index.html';
+        }
+
+        var _chartDonut = null, _chartDivisi = null, _chartStatus = null;
+
+        function setText(id, v) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = v;
+        }
+
+        function renderBar(id, t, d, m) {
+            var total = (t + d + m) || 1;
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML =
+                '<span style="width:' + (t/total*100).toFixed(1) + '%;background:#22c55e;"></span>' +
+                '<span style="width:' + (d/total*100).toFixed(1) + '%;background:#3b82f6;margin-left:2px;"></span>' +
+                '<span style="width:' + (m/total*100).toFixed(1) + '%;background:#f59e0b;margin-left:2px;"></span>';
+        }
+
+        function badgeHTML(status) {
+            var cls = 'tersedia', s = (status || '').toLowerCase();
+            if (s.includes('digunakan')) cls = 'digunakan';
+            else if (s.includes('servis')) cls = 'servis';
+            else if (s.includes('rusak') || s.includes('hilang')) cls = 'rusak';
+            return '<span class="badge-status ' + cls + '">' + status + '</span>';
+        }
+
+        function renderDonut(l, k, p, h) {
+            var ctx = document.getElementById('chartDonut').getContext('2d');
+            if (_chartDonut) _chartDonut.destroy();
+            _chartDonut = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Laptop','Kendaraan','Printer','Handphone'],
+                    datasets: [{ data:[l,k,p,h],
+                        backgroundColor:['#1A4D8C','#ea580c','#db2777','#0891b2'],
+                        borderWidth:2, borderColor:'#fff' }]
+                },
+                options: {
+                    responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{ position:'right', labels:{ font:{size:11}, boxWidth:12, padding:8 } } },
+                    cutout:'62%'
+                }
+            });
+        }
+
+        function renderDivisi(data) {
+            var ctx = document.getElementById('chartDivisi').getContext('2d');
+            if (_chartDivisi) _chartDivisi.destroy();
+            _chartDivisi = new Chart(ctx, {
+                type:'bar',
+                data:{
+                    labels: data.map(function(d){ return d.nama_divisi || d.divisi || '-'; }),
+                    datasets:[{ label:'Karyawan',
+                        data: data.map(function(d){ return parseInt(d.total)||0; }),
+                        backgroundColor:'#1A4D8C', borderRadius:6, borderSkipped:false }]
+                },
+                options:{
+                    responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{ display:false } },
+                    scales:{
+                        y:{ beginAtZero:true, ticks:{stepSize:1,font:{size:10}}, grid:{color:'rgba(26,77,140,0.06)'} },
+                        x:{ ticks:{font:{size:10}}, grid:{display:false} }
+                    }
+                }
+            });
+        }
+
+        function renderStatus(t, d, m) {
+            var ctx = document.getElementById('chartStatus').getContext('2d');
+            if (_chartStatus) _chartStatus.destroy();
+            _chartStatus = new Chart(ctx, {
+                type:'bar',
+                data:{
+                    labels:['Tersedia','Digunakan','Servis/Rusak'],
+                    datasets:[{ label:'Jumlah',
+                        data:[t,d,m],
+                        backgroundColor:['#22c55e','#3b82f6','#f59e0b'],
+                        borderRadius:8, borderSkipped:false }]
+                },
+                options:{
+                    responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{ display:false } },
+                    scales:{
+                        y:{ beginAtZero:true, ticks:{stepSize:1,font:{size:10}}, grid:{color:'rgba(26,77,140,0.06)'} },
+                        x:{ ticks:{font:{size:11}}, grid:{display:false} }
+                    }
+                }
+            });
+        }
+
+        async function loadAll() {
+            var btn = document.getElementById('btnRefresh');
+            btn.classList.add('loading');
+            try {
+                var BASE = (typeof API_URL !== 'undefined') ? API_URL.replace(/\/api$/,'') : 'http://localhost:3000';
+                var api = BASE + '/api';
+
+                var results = await Promise.all([
+                    fetch(api+'/statistics').then(function(r){return r.json();}),
+                    fetch(api+'/statistics/inventaris').then(function(r){return r.json();}),
+                    fetch(api+'/karyawan').then(function(r){return r.json();}),
+                    fetch(api+'/inventaris-laptop').then(function(r){return r.json();}),
+                    fetch(api+'/handphone').then(function(r){return r.json();})
+                ]);
+
+                var stats    = results[0].data || {};
+                var invStats = results[1].data || {};
+                var karyawanArr = Array.isArray(results[2]) ? results[2] : (results[2].data||[]);
+                var laptopArr   = Array.isArray(results[3]) ? results[3] : (results[3].data||[]);
+                var hpArr       = Array.isArray(results[4]) ? results[4] : (results[4].data||[]);
+
+                var lTotal = parseInt((invStats.laptop_inventaris||{}).total||0);
+                var lTers  = parseInt((invStats.laptop_inventaris||{}).tersedia||0);
+                var lDig   = parseInt((invStats.laptop_inventaris||{}).digunakan||0);
+                var lMas   = parseInt((invStats.laptop_inventaris||{}).masalah||0);
+
+                var kTotal = parseInt((invStats.kendaraan||{}).total||0);
+                var kTers  = parseInt((invStats.kendaraan||{}).tersedia||0);
+                var kDig   = parseInt((invStats.kendaraan||{}).digunakan||0);
+                var kMas   = parseInt((invStats.kendaraan||{}).masalah||0);
+
+                var pTotal = parseInt((invStats.printer||{}).total||0);
+                var pTers  = parseInt((invStats.printer||{}).tersedia||0);
+                var pDig   = parseInt((invStats.printer||{}).digunakan||0);
+                var pMas   = parseInt((invStats.printer||{}).masalah||0);
+
+                var hpTotal = hpArr.length;
+                var hpTers  = hpArr.filter(function(h){return h.status==='Tersedia';}).length;
+                var hpDig   = hpArr.filter(function(h){return h.status==='Digunakan Karyawan';}).length;
+                var hpMas   = hpArr.filter(function(h){return ['Servis','Rusak','Hilang'].includes(h.status);}).length;
+
+                var allTers = lTers + kTers + pTers + hpTers;
+                var allMas  = lMas  + kMas  + pMas  + hpMas;
+                var allDig  = lDig  + kDig  + pDig  + hpDig;
+                var allTot  = lTotal+ kTotal+ pTotal + hpTotal;
+
+                // Stat cards
+                setText('sKaryawan', stats.total_karyawan||0);
+                setText('sDivisi',   (stats.total_divisi||0)+' divisi');
+                setText('sLaptop',    lTotal); setText('sLaptopSub',    lDig+' digunakan');
+                setText('sKendaraan', kTotal); setText('sKendaraanSub', kDig+' digunakan');
+                setText('sPrinter',   pTotal); setText('sPrinterSub',   pDig+' aktif');
+                setText('sHP',        hpTotal); setText('sHPSub',       hpDig+' digunakan');
+                setText('sTersedia',  allTers);
+                setText('sMasalah',   allMas);
+                setText('sTotal',     allTot);
+
+                // Alert
+                var banner = document.getElementById('alertBanner');
+                if (allMas > 0) {
+                    document.getElementById('alertText').textContent =
+                        'Terdapat '+allMas+' aset dalam status Servis/Rusak/Hilang yang perlu perhatian.';
+                    banner.style.display = 'flex';
+                } else { banner.style.display = 'none'; }
+
+                // Inv cards
+                setText('invLaptopTotal',lTotal); setText('invLaptopTersedia',lTers);
+                setText('invLaptopDigunakan',lDig); setText('invLaptopMasalah',lMas);
+                renderBar('invLaptopBar',lTers,lDig,lMas);
+
+                setText('invKendaraanTotal',kTotal); setText('invKendaraanTersedia',kTers);
+                setText('invKendaraanDigunakan',kDig); setText('invKendaraanMasalah',kMas);
+                renderBar('invKendaraanBar',kTers,kDig,kMas);
+
+                setText('invPrinterTotal',pTotal); setText('invPrinterTersedia',pTers);
+                setText('invPrinterDigunakan',pDig); setText('invPrinterMasalah',pMas);
+                renderBar('invPrinterBar',pTers,pDig,pMas);
+
+                setText('invHPTotal',hpTotal); setText('invHPTersedia',hpTers);
+                setText('invHPDigunakan',hpDig); setText('invHPMasalah',hpMas);
+                renderBar('invHPBar',hpTers,hpDig,hpMas);
+
+                // Charts
+                renderDonut(lTotal,kTotal,pTotal,hpTotal);
+                if (stats.karyawan_per_divisi) renderDivisi(stats.karyawan_per_divisi);
+                renderStatus(allTers,allDig,allMas);
+
+                // Tabel laptop digunakan
+                var digArr = (stats.laptop_digunakan && stats.laptop_digunakan.length)
+                    ? stats.laptop_digunakan
+                    : laptopArr.filter(function(l){return l.status==='Digunakan Karyawan';});
+                var tblL = document.getElementById('tblLaptopDigunakan');
+                if (digArr.length) {
+                    tblL.innerHTML = digArr.map(function(l){
+                        return '<tr>'+
+                            '<td><strong>'+(l.nomor_inventaris||'-')+'</strong></td>'+
+                            '<td>'+(l.merek||'')+' '+(l.model||'')+'</td>'+
+                            '<td>'+(l.karyawan_nama||l.nama||'-')+'</td>'+
+                            '<td style="font-size:11px;color:var(--biru-muda);">'+(l.karyawan_id||'-')+'</td>'+
+                            '<td>'+badgeHTML('Digunakan Karyawan')+'</td>'+
+                            '</tr>';
+                    }).join('');
+                } else {
+                    tblL.innerHTML = '<tr class="empty-row"><td colspan="5">Tidak ada laptop yang sedang digunakan</td></tr>';
+                }
+
+                // Tabel karyawan terbaru
+                var tblK = document.getElementById('tblKaryawan');
+                if (karyawanArr.length) {
+                    tblK.innerHTML = karyawanArr.slice(-8).reverse().map(function(k){
+                        return '<tr>'+
+                            '<td style="font-size:11px;color:var(--biru-muda);">'+(k.id||'-')+'</td>'+
+                            '<td><strong>'+(k.nama||'-')+'</strong></td>'+
+                            '<td>'+(k.divisi||'-')+'</td>'+
+                            '</tr>';
+                    }).join('');
+                } else {
+                    tblK.innerHTML = '<tr class="empty-row"><td colspan="3">Tidak ada data karyawan</td></tr>';
+                }
+
+                // Timestamp
+                var now = new Date();
+                setText('lastUpdate','Terakhir diperbarui: '+
+                    now.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})+' '+
+                    now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}));
+
+            } catch(e) {
+                console.error(e);
+                setText('lastUpdate','Gagal memuat data: '+e.message);
+            }
+            btn.classList.remove('loading');
+        }
+
+        loadAll();
+        setInterval(loadAll, 60000);
+    </script>
+</body>
+</html>

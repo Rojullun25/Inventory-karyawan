@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail License - Inventory Karyawan</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container h2 { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-bottom: 8px; }
+        .breadcrumb { color: #fff; opacity: 0.85; margin-bottom: 16px; font-size: 13px; }
+        .breadcrumb a { color: #fff; text-decoration: underline; }
+
+        .grid-info { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .grid-info { grid-template-columns: 1fr; } }
+
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; }
+        .card h3 { margin: 0 0 14px; color: #1A4D8C; font-size: 15px; }
+
+        .stat-row { display: flex; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .stat-row:last-child { border: none; }
+        .stat-row .key { flex: 0 0 130px; color: #64748b; }
+        .stat-row .val { flex: 1; color: #1e293b; font-weight: 500; word-break: break-word; }
+
+        .seat-summary { background: #f8fafc; padding: 14px; border-radius: 10px; text-align: center; }
+        .seat-summary .num { font-size: 36px; font-weight: 700; color: #1A4D8C; }
+        .seat-summary .lbl { font-size: 12px; color: #64748b; }
+        .seat-bar { background: #e2e8f0; border-radius: 6px; height: 10px; margin: 12px 0; overflow: hidden; }
+        .seat-fill { height: 100%; background: #1A4D8C; transition: width 0.3s; }
+        .seat-fill.full { background: #dc2626; }
+
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-active { background: #dcfce7; color: #15803d; }
+        .badge-reminder { background: #fef9c3; color: #854d0e; }
+        .badge-warning { background: #fed7aa; color: #9a3412; }
+        .badge-critical { background: #fee2e2; color: #991b1b; }
+        .badge-expired { background: #1f2937; color: white; }
+        .badge-perpetual { background: #dbeafe; color: #1e40af; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .btn-primary { background: #1A4D8C; color: white; border: none; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
+        .btn-primary:hover { background: #2B6EB0; }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        tr.unassigned { opacity: 0.5; }
+        .badge-status { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+        .status-active { background: #dcfce7; color: #15803d; }
+        .status-unassigned { background: #f1f5f9; color: #64748b; }
+        .btn-unassign { background: #dc2626; color: white; border: none; padding: 4px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; }
+
+        .empty { text-align: center; padding: 40px 20px; color: #94a3b8; }
+
+        /* Modal */
+        .modal-bg { display: none !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99999; align-items: center; justify-content: center; padding: 20px; }
+        .modal-bg.show { display: flex !important; }
+        .modal-bg .modal { background: white !important; border-radius: 12px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: block !important; position: relative !important; height: auto !important; backdrop-filter: none !important; animation: none !important; }
+        .modal h3 { margin-top: 0; color: #1A4D8C; }
+        .modal label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; color: #334155; }
+        .modal input, .modal select, .modal textarea { width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: inherit; }
+        .modal textarea { min-height: 60px; resize: vertical; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .btn-cancel-modal { background: #f1f5f9; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1A4D8C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PT Wiratama">
+    <link rel="apple-touch-icon" href="img/pwa/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="img/pwa/icon-192.png">
+</head>
+<body>
+    
+
+    <div class="container">
+        <p class="breadcrumb"><a href="license-management.html">← Kembali ke License Management</a></p>
+        <h2 id="title"><i class="fas fa-key"></i> Memuat...</h2>
+
+        <div class="grid-info">
+            <div>
+                <div class="card seat-summary">
+                    <div class="lbl">Seat Tersedia</div>
+                    <div class="num" id="sisaSeat">-</div>
+                    <div class="seat-bar"><div class="seat-fill" id="seatBar" style="width:0%"></div></div>
+                    <div style="font-size:12px;color:#64748b;" id="seatDetail">-</div>
+                </div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-info-circle"></i> Info License</h3>
+                <div id="licenseInfo">Memuat...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <h3 style="margin:0;"><i class="fas fa-users"></i> Assignments</h3>
+                <button class="btn-primary" id="btnAssign" onclick="showAssign()">
+                    <i class="fas fa-plus"></i> Assign Seat
+                </button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipe</th>
+                        <th>Target</th>
+                        <th>Tgl Assign</th>
+                        <th>Status</th>
+                        <th>Diberikan Oleh</th>
+                        <th>Catatan</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr><td colspan="7" class="empty">Memuat...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Assign -->
+    <div class="modal-bg" id="modalAssign">
+        <div class="modal">
+            <h3>Assign License</h3>
+
+            <label>Assign ke *</label>
+            <select id="aType" onchange="onTypeChange()">
+                <option value="karyawan">Karyawan (yang ada di sistem)</option>
+                <option value="laptop">Laptop / Device</option>
+                <option value="email_external">Email External (untuk Office 365 family)</option>
+            </select>
+
+            <div id="rowKaryawan">
+                <label>Pilih Karyawan</label>
+                <select id="aKaryawan"><option value="">-- Pilih --</option></select>
+            </div>
+
+            <div id="rowLaptop" style="display:none;">
+                <label>Pilih Laptop</label>
+                <select id="aLaptop"><option value="">-- Pilih --</option></select>
+            </div>
+
+            <div id="rowEmail" style="display:none;">
+                <label>Email</label>
+                <input type="email" id="aEmail" placeholder="family@gmail.com">
+                <small style="color:#64748b;">Untuk Office 365 family member yang bukan karyawan terdaftar.</small>
+            </div>
+
+            <label>Catatan</label>
+            <textarea id="aCatatan" placeholder="Catatan opsional..."></textarea>
+
+            <div id="aError" style="color:#dc2626;font-size:12px;margin-top:8px;display:none;"></div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel-modal" onclick="hideAssign()">Batal</button>
+                <button class="btn-primary" onclick="submitAssign()">Assign</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script src="layout.js"></script>
+    <script src="pwa-register.js"></script>
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.href = 'index.html';
+
+        const licenseId = new URLSearchParams(window.location.search).get('id');
+        if (!licenseId) {
+            alert('ID license tidak valid.');
+            window.location.href = 'license-management.html';
+        }
+
+        let license = null;
+        let assignments = [];
+        let karyawanList = [];
+        let laptopList = [];
+
+        function escapeHtml(s) {
+            return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        function fmtDate(d) {
+            if (!d) return '-';
+            return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+        function fmtCurrency(amount, currency) {
+            if (!amount) return '-';
+            const formatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 });
+            return (currency === 'USD' ? '$' : 'Rp ') + formatter.format(amount);
+        }
+        const URGENCY_LABELS = {
+            active: 'Active', reminder: 'Reminder (30hr)', warning: 'Warning (14hr)',
+            critical: 'Critical (7hr)', expired: 'Expired', perpetual: 'Perpetual'
+        };
+
+        async function load() {
+            try {
+                const res = await apiFetch(`${API_URL}/license/${licenseId}`);
+                const j = await res.json();
+                if (!j.success) {
+                    alert('Gagal memuat license.');
+                    window.location.href = 'license-management.html';
+                    return;
+                }
+                license = j.license;
+                assignments = j.assignments || [];
+                renderLicense();
+                renderAssignments();
+            } catch(e) {
+                alert('Gagal memuat data.');
+            }
+        }
+
+        function renderLicense() {
+            document.getElementById('title').innerHTML = `<i class="fas fa-key"></i> ${escapeHtml(license.nama_software)}`;
+
+            const sisa = license.total_seat - (license.terpakai || 0);
+            const pct = license.total_seat ? Math.round((license.terpakai / license.total_seat) * 100) : 0;
+
+            document.getElementById('sisaSeat').textContent = sisa;
+            document.getElementById('seatBar').style.width = pct + '%';
+            if (pct >= 100) document.getElementById('seatBar').classList.add('full');
+            document.getElementById('seatDetail').textContent = `${license.terpakai} dari ${license.total_seat} terpakai (${pct}%)`;
+
+            // Disable tombol assign kalau penuh atau expired
+            const btnAssign = document.getElementById('btnAssign');
+            if (sisa <= 0) {
+                btnAssign.disabled = true;
+                btnAssign.innerHTML = '<i class="fas fa-ban"></i> Seat Penuh';
+            } else if (license.status !== 'active') {
+                btnAssign.disabled = true;
+                btnAssign.innerHTML = '<i class="fas fa-ban"></i> License Tidak Aktif';
+            }
+
+            const expiredText = license.tanggal_expired
+                ? (license.days_to_expired < 0
+                    ? `<span style="color:#dc2626;">Expired ${Math.abs(license.days_to_expired)} hari lalu (${fmtDate(license.tanggal_expired)})</span>`
+                    : `${fmtDate(license.tanggal_expired)} <small style="color:#64748b;">(${license.days_to_expired} hari lagi)</small>`)
+                : 'Perpetual / One-time';
+
+            document.getElementById('licenseInfo').innerHTML = `
+                <div class="stat-row"><div class="key">Vendor</div><div class="val">${escapeHtml(license.vendor) || '-'}</div></div>
+                <div class="stat-row"><div class="key">Versi</div><div class="val">${escapeHtml(license.versi) || '-'}</div></div>
+                <div class="stat-row"><div class="key">Tipe License</div><div class="val">${license.tipe_license.replace('_', ' ')}</div></div>
+                <div class="stat-row"><div class="key">Model Bayar</div><div class="val">${license.model_pembayaran.replace(/_/g, ' ')}</div></div>
+                <div class="stat-row"><div class="key">Status</div><div class="val"><span class="badge badge-${license.urgency}">${URGENCY_LABELS[license.urgency] || license.urgency}</span></div></div>
+                <div class="stat-row"><div class="key">Tgl Pembelian</div><div class="val">${fmtDate(license.tanggal_pembelian)}</div></div>
+                <div class="stat-row"><div class="key">Tgl Expired</div><div class="val">${expiredText}</div></div>
+                <div class="stat-row"><div class="key">Harga Total</div><div class="val">${fmtCurrency(license.harga_total, license.currency)}</div></div>
+                ${license.akun_master ? `<div class="stat-row"><div class="key">Akun Master</div><div class="val">${escapeHtml(license.akun_master)}</div></div>` : ''}
+                ${license.license_key ? `<div class="stat-row"><div class="key">License Key</div><div class="val" style="font-family:monospace;font-size:12px;">${escapeHtml(license.license_key)}</div></div>` : ''}
+                ${license.vendor_contact ? `<div class="stat-row"><div class="key">Vendor Contact</div><div class="val">${escapeHtml(license.vendor_contact)}</div></div>` : ''}
+                ${license.catatan ? `<div class="stat-row"><div class="key">Catatan</div><div class="val">${escapeHtml(license.catatan)}</div></div>` : ''}
+            `;
+        }
+
+        function renderAssignments() {
+            const tbody = document.getElementById('tbody');
+            if (assignments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">Belum ada assignment. Klik "Assign Seat" untuk mulai.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = assignments.map(a => {
+                let target = '-';
+                if (a.assigned_to_type === 'karyawan' && a.karyawan_nama) {
+                    target = `<strong>${escapeHtml(a.karyawan_nama)}</strong> <small style="color:#94a3b8;">(${a.karyawan_id})</small>`;
+                } else if (a.assigned_to_type === 'laptop' && a.laptop_nomor_inv) {
+                    target = `💻 ${escapeHtml(a.laptop_merek)} ${escapeHtml(a.laptop_model || '')} <small style="color:#94a3b8;">${a.laptop_nomor_inv}</small>`;
+                } else if (a.email_assigned) {
+                    target = `📧 ${escapeHtml(a.email_assigned)}`;
+                } else if (a.nama_target) {
+                    target = `<small style="color:#94a3b8;">${escapeHtml(a.nama_target)} (deleted)</small>`;
+                }
+
+                return `
+                    <tr class="${a.status === 'unassigned' ? 'unassigned' : ''}">
+                        <td><span class="badge badge-perpetual">${a.assigned_to_type.replace('_', ' ')}</span></td>
+                        <td>${target}</td>
+                        <td>${fmtDate(a.tanggal_assign)}</td>
+                        <td><span class="badge-status status-${a.status}">${a.status}</span></td>
+                        <td><small>${a.assigned_by_username || '-'}</small></td>
+                        <td style="font-size:12px;color:#64748b;">${escapeHtml(a.catatan) || '-'}</td>
+                        <td>
+                            ${a.status === 'active' ? `<button class="btn-unassign" onclick="unassign(${a.id})">Unassign</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function onTypeChange() {
+            const type = document.getElementById('aType').value;
+            document.getElementById('rowKaryawan').style.display = type === 'karyawan' ? 'block' : 'none';
+            document.getElementById('rowLaptop').style.display = type === 'laptop' ? 'block' : 'none';
+            document.getElementById('rowEmail').style.display = type === 'email_external' ? 'block' : 'none';
+        }
+
+        async function loadKaryawanLaptop() {
+            try {
+                const res1 = await apiFetch(`${API_URL}/karyawan`);
+                karyawanList = await res1.json();
+                document.getElementById('aKaryawan').innerHTML = '<option value="">-- Pilih --</option>' +
+                    karyawanList.map(k => `<option value="${k.id}">${escapeHtml(k.id)} - ${escapeHtml(k.nama)}</option>`).join('');
+
+                const res2 = await apiFetch(`${API_URL}/inventaris-laptop`);
+                const j = await res2.json();
+                laptopList = j.data || j;
+                document.getElementById('aLaptop').innerHTML = '<option value="">-- Pilih --</option>' +
+                    laptopList.map(l => `<option value="${l.id}">${escapeHtml(l.nomor_inventaris)} - ${escapeHtml(l.merek)} ${escapeHtml(l.model || '')}</option>`).join('');
+            } catch(e) {}
+        }
+
+        function showAssign() {
+            // Default tipe berdasarkan tipe_license
+            const defaultType = license.tipe_license === 'per_device' ? 'laptop' : 'karyawan';
+            document.getElementById('aType').value = defaultType;
+            onTypeChange();
+            ['aKaryawan','aLaptop','aEmail','aCatatan'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('aError').style.display = 'none';
+            loadKaryawanLaptop();
+            document.getElementById('modalAssign').classList.add('show');
+        }
+        function hideAssign() { document.getElementById('modalAssign').classList.remove('show'); }
+
+        async function submitAssign() {
+            const type = document.getElementById('aType').value;
+            const data = {
+                assigned_to_type: type,
+                karyawan_id: type === 'karyawan' ? document.getElementById('aKaryawan').value : null,
+                laptop_id: type === 'laptop' ? document.getElementById('aLaptop').value : null,
+                email_assigned: type === 'email_external' ? document.getElementById('aEmail').value : null,
+                catatan: document.getElementById('aCatatan').value
+            };
+
+            const target = data.karyawan_id || data.laptop_id || data.email_assigned;
+            if (!target) {
+                document.getElementById('aError').textContent = 'Pilih target assignment.';
+                document.getElementById('aError').style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await apiFetch(`${API_URL}/license/${licenseId}/assign`, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                const j = await res.json();
+                if (j.success) {
+                    alert('✅ ' + j.message);
+                    hideAssign();
+                    load();
+                } else {
+                    document.getElementById('aError').textContent = j.message;
+                    document.getElementById('aError').style.display = 'block';
+                }
+            } catch(e) {
+                document.getElementById('aError').textContent = 'Gagal assign.';
+                document.getElementById('aError').style.display = 'block';
+            }
+        }
+
+        async function unassign(assignmentId) {
+            if (!confirm('Yakin unassign license ini?')) return;
+            try {
+                const res = await apiFetch(`${API_URL}/license/${licenseId}/unassign/${assignmentId}`, {
+                    method: 'POST'
+                });
+                const j = await res.json();
+                if (j.success) { alert('✅ ' + j.message); load(); }
+                else alert('❌ ' + j.message);
+            } catch(e) { alert('❌ Gagal unassign.'); }
+        }
+
+        load();
+    </script>
+</body>
+</html>

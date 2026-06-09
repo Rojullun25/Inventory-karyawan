@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Opname - Inventory Karyawan</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container h2 { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-bottom: 20px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+        .toolbar p { color: #fff; opacity: 0.9; margin: 0; font-size: 14px; }
+        .btn-primary { background: #1A4D8C; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary:hover { background: #2B6EB0; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        tr:hover { background: #f8fafc; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-progress { background: #fef3c7; color: #92400e; }
+        .badge-completed { background: #dcfce7; color: #15803d; }
+        .badge-cancelled { background: #fee2e2; color: #991b1b; }
+        .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty i { font-size: 48px; color: #cbd5e1; display: block; margin-bottom: 12px; }
+        .stat { display: inline-block; margin-right: 12px; font-size: 12px; }
+        .stat-found { color: #15803d; }
+        .stat-broken { color: #ea580c; }
+        .stat-lost { color: #dc2626; }
+        .btn-sm { padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; margin-right: 4px; text-decoration: none; display: inline-block; }
+        .btn-open { background: #1A4D8C; color: white; }
+        .btn-delete { background: #dc2626; color: white; }
+        .alert { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; color: #92400e; font-size: 14px; }
+        .alert.success { background: #dcfce7; border-color: #15803d; color: #15803d; }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1A4D8C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PT Wiratama">
+    <link rel="apple-touch-icon" href="img/pwa/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="img/pwa/icon-192.png">
+</head>
+<body>
+    
+
+    <div class="container">
+        <h2><i class="fas fa-clipboard-check"></i> Stock Opname (Audit Inventaris)</h2>
+
+        <div id="alertArea"></div>
+
+        <div class="toolbar">
+            <p>Audit fisik aset dilakukan rutin setiap bulan untuk memastikan keberadaan & kondisi inventaris.</p>
+            <button class="btn-primary" onclick="startAudit()">
+                <i class="fas fa-plus"></i> Mulai Audit Bulan Ini
+            </button>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Periode</th>
+                        <th>Judul</th>
+                        <th>Tanggal</th>
+                        <th>Status</th>
+                        <th>Statistik</th>
+                        <th>Dibuat Oleh</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i>Memuat...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script src="layout.js"></script>
+    <script src="pwa-register.js"></script>
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.href = 'index.html';
+
+        function fmtDate(d) {
+            if (!d) return '-';
+            return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function showAlert(msg, type = 'success') {
+            document.getElementById('alertArea').innerHTML = `<div class="alert ${type}">${msg}</div>`;
+            setTimeout(() => document.getElementById('alertArea').innerHTML = '', 5000);
+        }
+
+        async function load() {
+            const tbody = document.getElementById('tbody');
+            try {
+                const res = await apiFetch(`${API_URL}/stock-opname`);
+                const j = await res.json();
+                const data = j.data || [];
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-clipboard"></i>Belum ada audit. Klik tombol "Mulai Audit Bulan Ini" untuk memulai.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(o => {
+                    const stat = o.status === 'completed'
+                        ? `<span class="stat stat-found">✓ ${o.total_ditemukan}</span>
+                           <span class="stat stat-broken">⚠ ${o.total_rusak}</span>
+                           <span class="stat stat-lost">✗ ${o.total_hilang}</span>`
+                        : `<small style="color:#64748b;">${o.total_pending} pending dari ${o.total_asset}</small>`;
+
+                    const aksi = o.status === 'in_progress'
+                        ? `<a href="stock-opname-detail.html?id=${o.id}" class="btn-sm btn-open">Lanjutkan Audit</a>
+                           <button class="btn-sm btn-delete" onclick="hapusOpname(${o.id})">Hapus</button>`
+                        : `<a href="stock-opname-detail.html?id=${o.id}" class="btn-sm btn-open">Lihat Laporan</a>`;
+
+                    return `
+                        <tr>
+                            <td><strong>${o.periode}</strong></td>
+                            <td>${o.judul}</td>
+                            <td>${fmtDate(o.tanggal_mulai)}${o.tanggal_selesai ? ' → ' + fmtDate(o.tanggal_selesai) : ''}</td>
+                            <td><span class="badge badge-${o.status === 'in_progress' ? 'progress' : o.status}">${o.status.replace('_', ' ')}</span></td>
+                            <td>${stat}</td>
+                            <td><small>${o.dibuat_oleh_username || '-'}</small></td>
+                            <td>${aksi}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">Gagal memuat data.</td></tr>';
+            }
+        }
+
+        async function startAudit() {
+            if (!confirm('Mulai audit baru untuk bulan ini?\n\nSistem akan snapshot semua aset (laptop, HP, kendaraan, printer, drone) yang ada saat ini.')) return;
+
+            try {
+                const res = await apiFetch(`${API_URL}/stock-opname/start`, {
+                    method: 'POST',
+                    body: JSON.stringify({})
+                });
+                const j = await res.json();
+                if (j.success) {
+                    showAlert('✅ ' + j.message, 'success');
+                    setTimeout(() => window.location.href = `stock-opname-detail.html?id=${j.opname_id}`, 1000);
+                } else {
+                    if (j.existing_id) {
+                        if (confirm(j.message + '\n\nLanjutkan ke audit yang sudah ada?')) {
+                            window.location.href = `stock-opname-detail.html?id=${j.existing_id}`;
+                        }
+                    } else {
+                        showAlert('❌ ' + j.message);
+                    }
+                }
+            } catch(e) {
+                showAlert('❌ Gagal memulai audit.');
+            }
+        }
+
+        async function hapusOpname(id) {
+            if (!confirm('Hapus audit ini? Semua data detail akan ikut terhapus.')) return;
+            try {
+                const res = await apiFetch(`${API_URL}/stock-opname/${id}`, { method: 'DELETE' });
+                const j = await res.json();
+                if (j.success) { showAlert('✅ ' + j.message); load(); }
+                else showAlert('❌ ' + j.message);
+            } catch(e) { showAlert('❌ Gagal menghapus.'); }
+        }
+
+        load();
+    </script>
+</body>
+</html>

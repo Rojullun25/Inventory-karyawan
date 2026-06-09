@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Saya - Inventory & HR</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container h2 { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-bottom: 20px; }
+        .profile-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        @media (max-width: 768px) { .profile-grid { grid-template-columns: 1fr; } }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 24px; }
+        .card h3 { margin: 0 0 16px; color: #1A4D8C; font-size: 16px; }
+        .photo-card { text-align: center; }
+        .photo { width: 160px; height: 160px; border-radius: 50%; object-fit: cover; margin: 0 auto 16px; background: #e2e8f0; display: block; }
+        .info-row { display: flex; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .info-row:last-child { border: none; }
+        .info-row .label { flex: 0 0 140px; color: #64748b; font-size: 13px; }
+        .info-row .value { flex: 1; color: #1e293b; font-size: 14px; font-weight: 500; }
+        .inv-item { background: #f8fafc; padding: 14px; border-radius: 8px; margin-bottom: 10px; }
+        .inv-item strong { color: #1A4D8C; }
+        .btn-change-pwd { background: #1A4D8C; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .btn-change-pwd:hover { background: #2B6EB0; }
+        .modal-bg { display: none !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99999; align-items: center; justify-content: center; }
+        .modal-bg.show { display: flex !important; }
+        .modal-bg .modal { background: white !important; border-radius: 12px; padding: 24px; width: 90%; max-width: 400px; display: block !important; position: relative !important; height: auto !important; backdrop-filter: none !important; animation: none !important; }
+        .modal h3 { margin-top: 0; color: #1A4D8C; }
+        .modal input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; box-sizing: border-box; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+        .btn-cancel-modal { background: #f1f5f9; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>PT Wiratama Globalindo Jaya</h1>
+        <div class="navbar-menu">
+            <a href="dashboard-karyawan.html" data-page="dashboard-karyawan">Dashboard</a>
+            <a href="ajukan-izin.html" data-page="ajukan-izin">Ajukan Izin</a>
+            <a href="pengajuan-saya.html" data-page="pengajuan-saya">Pengajuan Saya</a>
+            <a href="profil-saya.html" data-page="profil-saya">Profil Saya</a>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+    <script>
+        (function() {
+            const path = window.location.pathname.split('/').pop().replace('.html', '');
+            document.querySelectorAll('.navbar-menu a[data-page]').forEach(a => {
+                if (a.dataset.page === path) a.classList.add('active');
+            });
+        })();
+    </script>
+
+    <div class="container">
+        <h2><i class="fas fa-user"></i> Profil Saya</h2>
+
+        <div class="profile-grid">
+            <div class="card photo-card">
+                <img src="" id="photoEl" class="photo" onerror="this.src='img/logo1.webp'">
+                <h3 id="namaEl">-</h3>
+                <p style="color:#64748b;margin:4px 0;" id="jabatanEl">-</p>
+                <p style="color:#94a3b8;font-size:12px;" id="divisiEl">-</p>
+                <button class="btn-change-pwd" onclick="showModal()">
+                    <i class="fas fa-key"></i> Ganti Password
+                </button>
+            </div>
+
+            <div>
+                <div class="card" style="margin-bottom:16px;">
+                    <h3>Data Karyawan</h3>
+                    <div id="dataKaryawan"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Inventaris yang Saya Pakai</h3>
+                    <div id="dataInventaris"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="modalPwd">
+        <div class="modal">
+            <h3>Ganti Password</h3>
+            <input type="password" id="oldPwd" placeholder="Password lama">
+            <input type="password" id="newPwd" placeholder="Password baru (min 6 karakter)">
+            <input type="password" id="confirmPwd" placeholder="Konfirmasi password baru">
+            <div id="pwdError" style="color:#dc2626;font-size:12px;display:none;margin-bottom:8px;"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel-modal" onclick="hideModal()">Batal</button>
+                <button class="btn-change-pwd" onclick="submitPwd()">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.href = 'index.html';
+
+        const user = getCurrentUser();
+        const isHR = ['admin', 'hr'].includes(user?.role);
+
+        // Navbar sudah hardcoded di HTML, tidak perlu di-build via JS
+
+        async function loadProfile() {
+            try {
+                const res = await apiFetch(`${API_URL}/me/profile`);
+                const j = await res.json();
+                const k = j.karyawan;
+
+                if (!k) {
+                    document.getElementById('dataKaryawan').innerHTML = '<p style="color:#94a3b8;">Akun ini tidak terhubung ke data karyawan. Hubungi HR.</p>';
+                    document.getElementById('namaEl').textContent = j.user?.username || '-';
+                    return;
+                }
+
+                if (k.foto) document.getElementById('photoEl').src = k.foto;
+                document.getElementById('namaEl').textContent = k.nama || '-';
+                document.getElementById('jabatanEl').textContent = k.jabatan || '-';
+                document.getElementById('divisiEl').textContent = k.divisi || '-';
+
+                document.getElementById('dataKaryawan').innerHTML = `
+                    <div class="info-row"><div class="label">ID Karyawan</div><div class="value">${k.id}</div></div>
+                    <div class="info-row"><div class="label">Nama</div><div class="value">${k.nama || '-'}</div></div>
+                    <div class="info-row"><div class="label">Email</div><div class="value">${k.email || '-'}</div></div>
+                    <div class="info-row"><div class="label">No. HP</div><div class="value">${k.no_hp || '-'}</div></div>
+                    <div class="info-row"><div class="label">Divisi</div><div class="value">${k.divisi || '-'}</div></div>
+                    <div class="info-row"><div class="label">Jabatan</div><div class="value">${k.jabatan || '-'}</div></div>
+                    <div class="info-row"><div class="label">Perusahaan</div><div class="value">${k.perusahaan || '-'}</div></div>
+                `;
+            } catch(e) {}
+        }
+
+        async function loadInventaris() {
+            try {
+                const res = await apiFetch(`${API_URL}/me/inventaris`);
+                const j = await res.json();
+                const div = document.getElementById('dataInventaris');
+                const items = [];
+
+                (j.data?.laptop || []).forEach(l => {
+                    items.push(`<div class="inv-item">💻 <strong>${l.merek} ${l.model || ''}</strong><br><small style="color:#64748b;">SN: ${l.serial_number || '-'} | Inv: ${l.nomor_inventaris} | ${l.kondisi}</small></div>`);
+                });
+                (j.data?.handphone || []).forEach(h => {
+                    items.push(`<div class="inv-item">📱 <strong>${h.merek} ${h.model || ''}</strong><br><small style="color:#64748b;">SN: ${h.serial_number || '-'} | Inv: ${h.nomor_inventaris} | ${h.kondisi}</small></div>`);
+                });
+
+                div.innerHTML = items.length === 0 ? '<p style="color:#94a3b8;">Belum ada inventaris yang dipakai.</p>' : items.join('');
+            } catch(e) {}
+        }
+
+        function showModal() { document.getElementById('modalPwd').classList.add('show'); }
+        function hideModal() {
+            document.getElementById('modalPwd').classList.remove('show');
+            ['oldPwd','newPwd','confirmPwd'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('pwdError').style.display = 'none';
+        }
+
+        async function submitPwd() {
+            const o = document.getElementById('oldPwd').value;
+            const n = document.getElementById('newPwd').value;
+            const c = document.getElementById('confirmPwd').value;
+            const err = document.getElementById('pwdError');
+
+            if (!o || !n) { err.textContent = 'Semua field wajib diisi'; err.style.display = 'block'; return; }
+            if (n.length < 6) { err.textContent = 'Password baru minimal 6 karakter'; err.style.display = 'block'; return; }
+            if (n !== c) { err.textContent = 'Konfirmasi password tidak cocok'; err.style.display = 'block'; return; }
+
+            try {
+                const res = await apiFetch(`${API_URL}/users/change-password`, {
+                    method: 'POST',
+                    body: JSON.stringify({ current_password: o, new_password: n })
+                });
+                const j = await res.json();
+                if (j.success) {
+                    alert('✅ Password berhasil diganti');
+                    hideModal();
+                } else {
+                    err.textContent = j.message;
+                    err.style.display = 'block';
+                }
+            } catch(e) { err.textContent = 'Gagal mengganti password'; err.style.display = 'block'; }
+        }
+
+        loadProfile();
+        loadInventaris();
+    </script>
+</body>
+</html>

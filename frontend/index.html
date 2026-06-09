@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iventory system PT. Wiratama Globalindo Jaya</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1A4D8C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PT Wiratama">
+    <link rel="apple-touch-icon" href="img/pwa/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="img/pwa/icon-192.png">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <img src="img/logo1.webp" alt="Logo Perusahaan" class="logo">
+            <h2>INVENTORY SYSTEM</h2>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required placeholder="Masukkan username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="Masukkan password">
+                </div>
+
+                <div id="loginError" style="color:#e74c3c;font-size:0.9rem;margin-bottom:10px;display:none;"></div>
+                
+                <button type="submit" class="btn-login" id="btnLogin">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- database.js harus dimuat dulu supaya fungsi login() tersedia -->
+    <script src="database.js"></script>
+    <script>
+        // Kalau sudah punya token yang valid, langsung ke dashboard
+        // Kalau sudah login, redirect ke dashboard yang sesuai role
+        if (localStorage.getItem('auth_token')) {
+            try {
+                const u = JSON.parse(localStorage.getItem('auth_user'));
+                if (u && ['admin', 'hr'].includes(u.role)) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+            } catch(e) {
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const btnLogin = document.getElementById('btnLogin');
+            const errorDiv = document.getElementById('loginError');
+
+            // Loading state
+            btnLogin.disabled = true;
+            btnLogin.textContent = 'Memproses...';
+            errorDiv.style.display = 'none';
+
+            try {
+                const result = await login(username, password);
+
+                if (result.success) {
+                    // Set isLoggedIn juga untuk kompatibilitas halaman lama
+                    localStorage.setItem('isLoggedIn', 'true');
+                    // Redirect berdasarkan role
+                    const role = result.user?.role;
+                    if (['admin', 'hr'].includes(role)) {
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                } else {
+                    errorDiv.textContent = result.message || 'Username atau password salah!';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Gagal terhubung ke server. Pastikan server sudah berjalan.';
+                errorDiv.style.display = 'block';
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.textContent = 'Login';
+            }
+        });
+    </script>
+    <script src="pwa-register.js"></script>
+</body>
+</html>

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Audit - Stock Opname</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container h2 { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-bottom: 8px; }
+        .subtitle { color: #fff; opacity: 0.9; margin-bottom: 20px; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .summary-card { background: #fff; padding: 16px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .summary-card .num { font-size: 28px; font-weight: 700; color: #1A4D8C; }
+        .summary-card .lbl { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
+        .summary-card.green .num { color: #15803d; }
+        .summary-card.orange .num { color: #ea580c; }
+        .summary-card.red .num { color: #dc2626; }
+        .summary-card.gray .num { color: #64748b; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; background: #fff; padding: 14px 18px; border-radius: 10px; }
+        .filter-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .filter-group select, .filter-group input {
+            padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px;
+        }
+        .btn-finalize { background: #15803d; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-finalize:hover { background: #166534; }
+        .btn-finalize:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; }
+        tr:hover { background: #f8fafc; }
+        tr.audited { background: #f0fdf4 !important; }
+        tr.audited-rusak { background: #fff7ed !important; }
+        tr.audited-hilang { background: #fef2f2 !important; }
+
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .badge-tipe { background: #dbeafe; color: #1e40af; }
+        .badge-pending { background: #f1f5f9; color: #64748b; }
+        .badge-ditemukan { background: #dcfce7; color: #15803d; }
+        .badge-rusak { background: #fed7aa; color: #9a3412; }
+        .badge-hilang { background: #fee2e2; color: #991b1b; }
+
+        .btn-action { padding: 4px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; border: none; margin-right: 3px; }
+        .btn-found { background: #15803d; color: white; }
+        .btn-broken { background: #ea580c; color: white; }
+        .btn-lost { background: #dc2626; color: white; }
+        .btn-edit { background: #1A4D8C; color: white; }
+
+        /* Modal */
+        .modal-bg { display: none !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99999; align-items: center; justify-content: center; padding: 20px; }
+        .modal-bg.show { display: flex !important; }
+        .modal-bg .modal { background: white !important; border-radius: 12px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: block !important; position: relative !important; height: auto !important; backdrop-filter: none !important; animation: none !important; }
+        .modal h3 { margin-top: 0; color: #1A4D8C; }
+        .modal label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; color: #334155; }
+        .modal input, .modal select, .modal textarea { width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: inherit; }
+        .modal textarea { min-height: 70px; resize: vertical; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .btn-cancel-modal { background: #f1f5f9; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+        .item-info { background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 8px; }
+        .item-info strong { color: #1A4D8C; }
+
+        .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty i { font-size: 48px; color: #cbd5e1; display: block; margin-bottom: 12px; }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1A4D8C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PT Wiratama">
+    <link rel="apple-touch-icon" href="img/pwa/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="img/pwa/icon-192.png">
+</head>
+<body>
+    
+
+    <div class="container">
+        <h2 id="judulOpname"><i class="fas fa-clipboard-check"></i> Memuat...</h2>
+        <p class="subtitle" id="subtitle">-</p>
+
+        <div class="summary-grid">
+            <div class="summary-card"><div class="num" id="sTotal">0</div><div class="lbl">Total Asset</div></div>
+            <div class="summary-card green"><div class="num" id="sFound">0</div><div class="lbl">Ditemukan</div></div>
+            <div class="summary-card orange"><div class="num" id="sBroken">0</div><div class="lbl">Rusak</div></div>
+            <div class="summary-card red"><div class="num" id="sLost">0</div><div class="lbl">Hilang</div></div>
+            <div class="summary-card gray"><div class="num" id="sPending">0</div><div class="lbl">Belum Dicek</div></div>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-group">
+                <label style="font-size:12px;color:#64748b;">FILTER:</label>
+                <select id="filterTipe">
+                    <option value="">Semua Tipe</option>
+                    <option value="laptop">Laptop</option>
+                    <option value="handphone">Handphone</option>
+                    <option value="kendaraan">Kendaraan</option>
+                    <option value="printer">Printer</option>
+                    <option value="drone">Drone</option>
+                </select>
+                <select id="filterStatus">
+                    <option value="">Semua Status</option>
+                    <option value="pending">Belum Dicek</option>
+                    <option value="ditemukan">Ditemukan</option>
+                    <option value="rusak">Rusak</option>
+                    <option value="hilang">Hilang</option>
+                </select>
+                <input type="text" id="filterSearch" placeholder="Cari nama/inventaris..." style="min-width:200px;">
+            </div>
+            <button class="btn-finalize" id="btnFinalize" onclick="finalize()">
+                <i class="fas fa-check-double"></i> Selesaikan Audit
+            </button>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipe</th>
+                        <th>Nama Asset</th>
+                        <th>No. Inv</th>
+                        <th>Pemilik (snapshot)</th>
+                        <th>Lokasi (snapshot)</th>
+                        <th>Status Audit</th>
+                        <th>Diaudit</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i>Memuat...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Audit -->
+    <div class="modal-bg" id="modalAudit">
+        <div class="modal">
+            <h3>Audit Asset</h3>
+            <div class="item-info" id="itemInfo"></div>
+
+            <label>Status Audit <span style="color:red">*</span></label>
+            <select id="aStatus">
+                <option value="ditemukan">✓ Ditemukan</option>
+                <option value="rusak">⚠ Rusak</option>
+                <option value="hilang">✗ Hilang</option>
+            </select>
+
+            <label>Lokasi Aktual</label>
+            <input type="text" id="aLokasi" placeholder="Misal: Ruang IT, Lantai 2">
+
+            <label>Kondisi Aktual</label>
+            <select id="aKondisi">
+                <option value="">-- Pilih --</option>
+                <option value="Baik">Baik</option>
+                <option value="Cukup">Cukup</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+            </select>
+
+            <label>Foto Bukti (Opsional)</label>
+            <input type="file" id="aFoto" accept="image/*">
+
+            <label>Catatan</label>
+            <textarea id="aCatatan" placeholder="Catatan tambahan..."></textarea>
+
+            <div id="aError" style="color:#dc2626;font-size:12px;margin-top:8px;display:none;"></div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel-modal" onclick="hideModal()">Batal</button>
+                <button class="btn-action btn-edit" onclick="submitAudit()" style="padding:8px 18px;font-size:13px;">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script src="layout.js"></script>
+    <script src="pwa-register.js"></script>
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.href = 'index.html';
+
+        const opnameId = new URLSearchParams(window.location.search).get('id');
+        if (!opnameId) {
+            alert('ID opname tidak valid.');
+            window.location.href = 'stock-opname.html';
+        }
+
+        let header = null;
+        let allItems = [];
+        let currentItemId = null;
+
+        function escapeHtml(s) {
+            return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        async function load() {
+            try {
+                const res = await apiFetch(`${API_URL}/stock-opname/${opnameId}`);
+                const j = await res.json();
+                if (!j.success) {
+                    alert('Gagal memuat audit.');
+                    window.location.href = 'stock-opname.html';
+                    return;
+                }
+                header = j.header;
+                allItems = j.detail || [];
+
+                document.getElementById('judulOpname').innerHTML = `<i class="fas fa-clipboard-check"></i> ${escapeHtml(header.judul)}`;
+                const isCompleted = header.status === 'completed';
+                document.getElementById('subtitle').textContent = isCompleted
+                    ? `Status: SELESAI (diakhiri ${header.selesai_oleh_username || '-'})`
+                    : `Status: SEDANG BERLANGSUNG — Centang setiap aset yang Anda cek secara fisik.`;
+
+                if (isCompleted) {
+                    document.getElementById('btnFinalize').style.display = 'none';
+                }
+
+                updateStats();
+                render();
+            } catch(e) {
+                alert('Gagal memuat data.');
+            }
+        }
+
+        function updateStats() {
+            const stats = { pending:0, ditemukan:0, rusak:0, hilang:0 };
+            allItems.forEach(it => stats[it.status_audit]++);
+            document.getElementById('sTotal').textContent = allItems.length;
+            document.getElementById('sFound').textContent = stats.ditemukan;
+            document.getElementById('sBroken').textContent = stats.rusak;
+            document.getElementById('sLost').textContent = stats.hilang;
+            document.getElementById('sPending').textContent = stats.pending;
+        }
+
+        function render() {
+            const tipe = document.getElementById('filterTipe').value;
+            const status = document.getElementById('filterStatus').value;
+            const search = document.getElementById('filterSearch').value.toLowerCase();
+
+            let filtered = allItems;
+            if (tipe) filtered = filtered.filter(i => i.tipe_barang === tipe);
+            if (status) filtered = filtered.filter(i => i.status_audit === status);
+            if (search) {
+                filtered = filtered.filter(i =>
+                    (i.nama_barang || '').toLowerCase().includes(search) ||
+                    (i.nomor_inventaris || '').toLowerCase().includes(search) ||
+                    (i.nama_karyawan_snapshot || '').toLowerCase().includes(search)
+                );
+            }
+
+            const tbody = document.getElementById('tbody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty"><i class="fas fa-inbox"></i>Tidak ada item.</td></tr>';
+                return;
+            }
+
+            const isCompleted = header.status === 'completed';
+
+            tbody.innerHTML = filtered.map(it => {
+                const rowClass = it.status_audit === 'ditemukan' ? 'audited' :
+                                 it.status_audit === 'rusak' ? 'audited-rusak' :
+                                 it.status_audit === 'hilang' ? 'audited-hilang' : '';
+
+                const aksi = isCompleted ? '-' : `
+                    <button class="btn-action btn-found" onclick="quickAudit(${it.id}, 'ditemukan')" title="Ditemukan">✓</button>
+                    <button class="btn-action btn-broken" onclick="quickAudit(${it.id}, 'rusak')" title="Rusak">⚠</button>
+                    <button class="btn-action btn-lost" onclick="quickAudit(${it.id}, 'hilang')" title="Hilang">✗</button>
+                    <button class="btn-action btn-edit" onclick="showModal(${it.id})" title="Edit detail">📝</button>
+                `;
+
+                return `
+                    <tr class="${rowClass}">
+                        <td><span class="badge badge-tipe">${it.tipe_barang}</span></td>
+                        <td><strong>${escapeHtml(it.nama_barang)}</strong></td>
+                        <td><small>${escapeHtml(it.nomor_inventaris) || '-'}</small></td>
+                        <td>${escapeHtml(it.nama_karyawan_snapshot) || '<small style="color:#94a3b8;">Gudang</small>'}</td>
+                        <td><small>${escapeHtml(it.lokasi_snapshot) || '-'}</small></td>
+                        <td><span class="badge badge-${it.status_audit}">${it.status_audit}</span></td>
+                        <td><small style="color:#94a3b8;">${it.diaudit_oleh_username || '-'}</small></td>
+                        <td>${aksi}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function quickAudit(itemId, status) {
+            const item = allItems.find(i => i.id == itemId);
+            if (!item) return;
+
+            try {
+                const fd = new FormData();
+                fd.append('status_audit', status);
+                fd.append('lokasi_aktual', item.lokasi_snapshot || '');
+                fd.append('kondisi_aktual', item.kondisi_snapshot || '');
+
+                const res = await apiFetch(`${API_URL}/stock-opname/${opnameId}/items/${itemId}`, {
+                    method: 'PUT',
+                    body: fd
+                });
+                const j = await res.json();
+                if (j.success) {
+                    // Update local state, no full reload
+                    item.status_audit = status;
+                    item.diaudit_oleh_username = JSON.parse(localStorage.getItem('auth_user'))?.username || 'me';
+                    updateStats();
+                    render();
+                } else { alert('❌ ' + j.message); }
+            } catch(e) { alert('❌ Gagal update.'); }
+        }
+
+        function showModal(itemId) {
+            const item = allItems.find(i => i.id == itemId);
+            if (!item) return;
+            currentItemId = itemId;
+
+            document.getElementById('itemInfo').innerHTML = `
+                <strong>${escapeHtml(item.nama_barang)}</strong> (${item.tipe_barang})<br>
+                <small>No. Inv: ${escapeHtml(item.nomor_inventaris) || '-'}</small><br>
+                <small>Pemilik: ${escapeHtml(item.nama_karyawan_snapshot) || 'Gudang'}</small>
+            `;
+            document.getElementById('aStatus').value = item.status_audit === 'pending' ? 'ditemukan' : item.status_audit;
+            document.getElementById('aLokasi').value = item.lokasi_aktual || item.lokasi_snapshot || '';
+            document.getElementById('aKondisi').value = item.kondisi_aktual || item.kondisi_snapshot || '';
+            document.getElementById('aCatatan').value = item.catatan || '';
+            document.getElementById('aFoto').value = '';
+            document.getElementById('aError').style.display = 'none';
+
+            document.getElementById('modalAudit').classList.add('show');
+        }
+
+        function hideModal() {
+            document.getElementById('modalAudit').classList.remove('show');
+            currentItemId = null;
+        }
+
+        async function submitAudit() {
+            if (!currentItemId) return;
+            const fd = new FormData();
+            fd.append('status_audit', document.getElementById('aStatus').value);
+            fd.append('lokasi_aktual', document.getElementById('aLokasi').value);
+            fd.append('kondisi_aktual', document.getElementById('aKondisi').value);
+            fd.append('catatan', document.getElementById('aCatatan').value);
+            const fotoFile = document.getElementById('aFoto').files[0];
+            if (fotoFile) fd.append('foto', fotoFile);
+
+            try {
+                const res = await apiFetch(`${API_URL}/stock-opname/${opnameId}/items/${currentItemId}`, {
+                    method: 'PUT',
+                    body: fd
+                });
+                const j = await res.json();
+                if (j.success) {
+                    hideModal();
+                    load(); // Full reload to get updated data including foto
+                } else {
+                    document.getElementById('aError').textContent = j.message;
+                    document.getElementById('aError').style.display = 'block';
+                }
+            } catch(e) {
+                document.getElementById('aError').textContent = 'Gagal menyimpan.';
+                document.getElementById('aError').style.display = 'block';
+            }
+        }
+
+        async function finalize() {
+            const pending = allItems.filter(i => i.status_audit === 'pending').length;
+            let msg = 'Selesaikan audit ini?';
+            if (pending > 0) {
+                msg += `\n\n⚠️ Masih ada ${pending} item yang belum dicek (akan tetap berstatus "pending" / dianggap belum diaudit).`;
+            }
+            msg += '\n\nSetelah diselesaikan, audit tidak bisa diubah lagi. Aset yang dilabel "Rusak" akan otomatis berubah status jadi "Servis", yang "Hilang" jadi "Hilang".';
+            if (!confirm(msg)) return;
+
+            try {
+                const res = await apiFetch(`${API_URL}/stock-opname/${opnameId}/finalize`, {
+                    method: 'POST'
+                });
+                const j = await res.json();
+                if (j.success) {
+                    alert('✅ ' + j.message);
+                    window.location.href = 'stock-opname.html';
+                } else { alert('❌ ' + j.message); }
+            } catch(e) { alert('❌ Gagal finalize.'); }
+        }
+
+        document.getElementById('filterTipe').addEventListener('change', render);
+        document.getElementById('filterStatus').addEventListener('change', render);
+        document.getElementById('filterSearch').addEventListener('input', render);
+
+        load();
+    </script>
+</body>
+</html>

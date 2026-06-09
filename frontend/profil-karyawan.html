@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Profil Karyawan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(160deg, #0f2c5c 0%, #1A4D8C 40%, #2B6EB0 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px 48px;
+        }
+
+        /* ── TOP LOGO BAR ── */
+        .top-bar {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .top-bar .logo-icon {
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: #fff;
+            flex-shrink: 0;
+        }
+        .top-bar .title-group { flex: 1; }
+        .top-bar .title-group h1 { font-size: 14px; color: #fff; font-weight: 700; line-height: 1.2; }
+        .top-bar .title-group p  { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+
+        /* ── CARD ── */
+        .profile-card {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        /* Header foto + nama */
+        .card-hero {
+            background: linear-gradient(135deg, #1A4D8C, #2B6EB0);
+            padding: 28px 24px 64px;
+            text-align: center;
+            position: relative;
+        }
+        .card-hero::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; right: 0;
+            height: 40px;
+            background: #fff;
+            border-radius: 40px 40px 0 0;
+        }
+        .avatar-wrap {
+            width: 100px; height: 100px;
+            margin: 0 auto 14px;
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.4);
+            overflow: hidden;
+            background: rgba(255,255,255,0.15);
+        }
+        .avatar-wrap img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .card-hero h2 { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: .3px; }
+        .card-hero .jabatan { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+
+        /* Badge divisi */
+        .divisi-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.35);
+            color: #fff;
+            font-size: 11px; font-weight: 700;
+            padding: 4px 14px;
+            border-radius: 20px;
+            margin-top: 8px;
+            letter-spacing: .3px;
+        }
+
+        /* Body info */
+        .card-body { padding: 8px 20px 24px; }
+
+        /* PT badge */
+        .pt-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0f7ff;
+            border: 1.5px solid #c7dff7;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+        }
+        .pt-pill .pt-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg,#1A4D8C,#2B6EB0);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 14px; flex-shrink: 0;
+        }
+        .pt-pill .pt-text { font-size: 13px; font-weight: 700; color: #1A4D8C; }
+
+        /* Info rows */
+        .info-section { margin-bottom: 18px; }
+        .info-section h3 {
+            font-size: 11px; font-weight: 700;
+            color: #94a3b8; letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8fafc;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .icon-wrap {
+            width: 32px; height: 32px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: #2B6EB0; font-size: 13px;
+            flex-shrink: 0; margin-top: 1px;
+        }
+        .info-row .info-label { font-size: 10px; color: #94a3b8; font-weight: 600; margin-bottom: 2px; }
+        .info-row .info-value { font-size: 14px; color: #1e293b; font-weight: 600; word-break: break-word; }
+        .info-row .info-value.mono { font-family: monospace; font-size: 15px; letter-spacing: 1px; color: #1A4D8C; }
+
+        /* Laptop section */
+        .laptop-box {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .laptop-box .lap-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg,#1A4D8C,#2B6EB0);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 18px; flex-shrink: 0;
+        }
+        .laptop-box .lap-name { font-size: 14px; font-weight: 700; color: #1e293b; }
+        .laptop-box .lap-sn   { font-size: 11px; color: #64748b; font-family: monospace; margin-top: 2px; }
+        .laptop-box .lap-inv  { font-size: 11px; color: #2B6EB0; font-weight: 600; margin-top: 1px; }
+
+        .no-laptop {
+            text-align: center; color: #94a3b8; font-size: 13px; padding: 14px 0;
+        }
+
+        /* Software tags */
+        .sw-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .sw-tag {
+            background: #f0f7ff; border: 1px solid #c7dff7;
+            color: #1A4D8C; font-size: 11px; font-weight: 600;
+            padding: 4px 10px; border-radius: 8px;
+        }
+
+        /* Footer */
+        .card-footer {
+            background: #f8fafc;
+            border-top: 1px solid #f1f5f9;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-footer .footer-left { font-size: 10px; color: #94a3b8; }
+        .card-footer .footer-left strong { display: block; color: #64748b; font-size: 11px; }
+
+        /* Verification banner */
+        .verify-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            border-radius: 14px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            animation: slidein .4s ease;
+        }
+        @keyframes slidein { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        .verify-banner.valid {
+            background: #dcfce7;
+            border: 1.5px solid #86efac;
+            color: #15803d;
+        }
+        .verify-banner.invalid {
+            background: #fee2e2;
+            border: 1.5px solid #fca5a5;
+            color: #b91c1c;
+        }
+        .verify-banner.checking {
+            background: #f0f9ff;
+            border: 1.5px solid #bae6fd;
+            color: #0369a1;
+        }
+        .verify-icon {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .verify-banner.valid   .verify-icon { background: #bbf7d0; }
+        .verify-banner.invalid .verify-icon { background: #fecaca; }
+        .verify-banner.checking .verify-icon { background: #e0f2fe; }
+        .verify-banner .verify-text small { display:block; font-size:10px; font-weight:400; margin-top:2px; opacity:.75; }
+
+        .verified-badge {
+            display: flex; align-items: center; gap: 5px;
+            background: #dcfce7; border: 1px solid #86efac;
+            border-radius: 20px; padding: 4px 10px;
+        }
+        .verified-badge span { font-size: 10px; color: #16a34a; font-weight: 700; }
+
+        /* Loading & Error */
+        .state-box {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .state-box .state-icon {
+            font-size: 48px; margin-bottom: 16px;
+        }
+        .state-box h3 { font-size: 18px; color: #fff; font-weight: 700; margin-bottom: 8px; }
+        .state-box p  { font-size: 13px; color: rgba(255,255,255,0.7); }
+
+        .spinner {
+            width: 44px; height: 44px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- Top bar -->
+    <div class="top-bar">
+        <div class="logo-icon"><i class="fas fa-building"></i></div>
+        <div class="title-group">
+            <h1 id="topBarPt">IT Inventory System</h1>
+            <p>Profil Karyawan</p>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div id="mainContent" style="width:100%;max-width:420px;">
+        <!-- Loading state -->
+        <div class="state-box" id="loadingState">
+            <div class="spinner"></div>
+            <h3>Memuat data...</h3>
+            <p>Sedang mengambil informasi karyawan</p>
+        </div>
+    </div>
+
+    <script>
+        // API selalu di Node.js port 3000 (Apache port 80 hanya serve static files).
+        // Kalau host adalah localhost/127.0.0.1, pakai localhost. Selain itu, pakai
+        // hostname yang sama dengan halaman saat ini (mendukung akses via IP server).
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:3000/api'
+            : `http://${window.location.hostname}:3000/api`;
+
+        // Ambil ID & token dari query string
+        const params = new URLSearchParams(window.location.search);
+        const karyawanId = params.get('view');
+        const verifyToken = params.get('token');
+
+        // Warna per PT
+        const PT_COLORS = {
+            'PT. Wiratama Globalindo Jaya':  { a: '#1A4D8C', b: '#2B6EB0' },
+            'PT. Fikrindo Putra Jaya':        { a: '#15803d', b: '#22c55e' },
+            'PT. Aulian Putra Konstruksi':    { a: '#b45309', b: '#f59e0b' },
+            'PT. Arafa Jaya Engineering':     { a: '#7c3aed', b: '#9d51f5' },
+        };
+
+        // ─── Website URL per PT (untuk auto-redirect setelah verifikasi) ───
+        // EDIT DI SINI kalau URL website berubah atau ada PT baru.
+        // Kalau PT tidak ada di mapping ini, fallback ke FALLBACK_WEBSITE.
+        const PT_WEBSITES = {
+            'PT. Wiratama Globalindo Jaya':  'https://www.ptwiratama.com/',
+            'PT. Fikrindo Putra Jaya':        'https://www.ptwiratama.com/', // ← EDIT INI kalau Fikrindo punya website
+            'PT. Aulian Putra Konstruksi':    'https://aulianputrakonstruksi.com/',
+            'PT. Arafa Jaya Engineering':     'https://www.ptwiratama.com/', // ← EDIT INI kalau Arafa punya website
+        };
+        const FALLBACK_WEBSITE = 'https://www.ptwiratama.com/';
+        const REDIRECT_SECONDS = 5; // ← EDIT INI kalau mau ganti durasi countdown
+
+        function getWebsiteForPT(ptName) {
+            return PT_WEBSITES[ptName] || FALLBACK_WEBSITE;
+        }
+
+        function applyPtColors(ptName) {
+            const c = PT_COLORS[ptName] || { a: '#1A4D8C', b: '#2B6EB0' };
+            document.querySelectorAll('.card-hero').forEach(el => {
+                el.style.background = `linear-gradient(135deg, ${c.a}, ${c.b})`;
+            });
+            document.querySelectorAll('.pt-icon, .lap-icon').forEach(el => {
+                el.style.background = `linear-gradient(135deg, ${c.a}, ${c.b})`;
+            });
+            document.querySelectorAll('.info-row .icon-wrap').forEach(el => {
+                el.style.color = c.b;
+                el.style.background = c.a + '15';
+            });
+            document.querySelectorAll('.pt-text, .info-row .info-value.mono').forEach(el => {
+                el.style.color = c.a;
+            });
+            document.querySelectorAll('.pt-pill').forEach(el => {
+                el.style.borderColor = c.b + '60';
+                el.style.background = c.a + '10';
+            });
+            document.getElementById('topBarPt').textContent = ptName || 'IT Inventory System';
+        }
+
+        function renderProfile(k) {
+            const ptName = k.perusahaan || 'PT. Wiratama Globalindo Jaya';
+            const fotoSrc = k.foto ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&size=200&background=1A4D8C&color=fff`;
+
+            const now = new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' });
+
+            document.getElementById('mainContent').innerHTML = `
+                <div id="verifyArea"></div>
+                <div class="profile-card">
+                    <!-- Hero -->
+                    <div class="card-hero">
+                        <div class="avatar-wrap">
+                            <img src="${fotoSrc}" alt="${k.nama}"
+                                 onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(k.nama)}&size=200&background=1A4D8C&color=fff'">
+                        </div>
+                        <h2>${k.nama}</h2>
+                        <p class="jabatan">${k.jabatan || 'Karyawan'}</p>
+                        <span class="divisi-badge">${k.divisi || '-'}</span>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="card-body">
+
+                        <!-- PT Pill -->
+                        <div class="pt-pill">
+                            <div class="pt-icon"><i class="fas fa-building"></i></div>
+                            <div class="pt-text">${ptName}</div>
+                        </div>
+
+                        <!-- Info Pribadi -->
+                        <div class="info-section">
+                            <h3><i class="fas fa-id-card" style="margin-right:5px;"></i>Informasi Pribadi</h3>
+                            <div class="info-row">
+                                <div class="icon-wrap"><i class="fas fa-fingerprint"></i></div>
+                                <div>
+                                    <div class="info-label">ID KARYAWAN</div>
+                                    <div class="info-value mono">${k.id || '-'}</div>
+                                </div>
+                            </div>
+                            ${k.email ? `<div class="info-row">
+                                <div class="icon-wrap"><i class="fas fa-envelope"></i></div>
+                                <div>
+                                    <div class="info-label">EMAIL</div>
+                                    <div class="info-value">${k.email}</div>
+                                </div>
+                            </div>` : ''}
+                        </div>
+
+                        <!-- Tombol Chat WhatsApp (hanya muncul setelah verif sukses & no_hp valid) -->
+                        <div id="waButtonArea"></div>
+
+                    </div><!-- /card-body -->
+
+                    <!-- Footer -->
+                    <div class="card-footer">
+                        <div class="footer-left">
+                            <strong>Dilihat: ${now}</strong>
+                            IT Inventory System
+                        </div>
+                        <div class="verified-badge">
+                            <i class="fas fa-check-circle" style="color:#16a34a;font-size:12px;"></i>
+                            <span>Terverifikasi</span>
+                        </div>
+                    </div>
+                </div>`;
+
+            applyPtColors(ptName);
+        }
+
+        function renderError(msg) {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="state-box">
+                    <div class="state-icon">🔍</div>
+                    <h3>Data Tidak Ditemukan</h3>
+                    <p>${msg || 'Karyawan tidak ditemukan atau QR Code tidak valid.'}</p>
+                </div>`;
+        }
+
+        function renderVerifyBanner(state, msg, sub) {
+            const icons = { valid: '✅', invalid: '🚫', checking: '🔍' };
+            return `<div class="verify-banner ${state}">
+                <div class="verify-icon">${icons[state]}</div>
+                <div class="verify-text">
+                    ${msg}
+                    <small>${sub}</small>
+                </div>
+            </div>`;
+        }
+
+        // ─── Helper: Format nomor HP Indonesia ke E.164 untuk wa.me ───
+        // Convert: "081234567890" / "+62 812-3456-7890" / "62812..." → "62812345670890"
+        // Return: string E.164 tanpa '+' (sesuai format wa.me), atau null kalau invalid.
+        function formatPhoneE164(raw) {
+            if (!raw) return null;
+            // Hapus semua karakter non-digit
+            let num = String(raw).replace(/\D/g, '');
+            if (!num) return null;
+            // Kalau diawali 0, ganti jadi 62 (kode Indonesia)
+            if (num.startsWith('0')) {
+                num = '62' + num.substring(1);
+            } else if (num.startsWith('8')) {
+                // Diawali langsung 8 (tanpa 0/62) → tambah 62
+                num = '62' + num;
+            }
+            // Validasi: minimal 10 digit, max 15 (E.164 standard)
+            if (num.length < 10 || num.length > 15) return null;
+            return num;
+        }
+
+        // ─── Build tombol WhatsApp ───
+        // Hanya muncul kalau no_hp ada & format valid.
+        // Konteks: pengunjung pameran scan QR kartu ID karyawan → klik tombol ini
+        // → buka WhatsApp ke nomor karyawan dengan field pesan KOSONG
+        // (pengunjung ketik sendiri sesuai konteks).
+        function renderWhatsAppButton(nama, no_hp) {
+            const e164 = formatPhoneE164(no_hp);
+            if (!e164) return '';
+            // Tanpa parameter ?text= → buka chat dengan pesan kosong
+            const waUrl = `https://wa.me/${e164}`;
+            // onclick="cancelRedirect()" → klik tombol WA membatalkan auto-redirect ke website PT
+            return `
+                <a href="${waUrl}" target="_blank" rel="noopener noreferrer"
+                   onclick="cancelRedirect()"
+                   style="display:flex;align-items:center;justify-content:center;gap:8px;
+                          background:#25D366;color:#fff;text-decoration:none;
+                          padding:14px 18px;border-radius:12px;font-weight:600;font-size:15px;
+                          margin-top:16px;box-shadow:0 4px 12px rgba(37,211,102,0.3);
+                          transition:transform 0.15s ease, box-shadow 0.15s ease;"
+                   onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 16px rgba(37,211,102,0.4)';"
+                   onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 12px rgba(37,211,102,0.3)';">
+                    <i class="fab fa-whatsapp" style="font-size:20px;"></i>
+                    Chat WhatsApp
+                </a>`;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // AUTO-REDIRECT KE WEBSITE PT (setelah verifikasi sukses)
+        // ═══════════════════════════════════════════════════════════════
+        // Behavior:
+        //   - Setelah banner verif valid muncul, tampilkan countdown 5 detik
+        //   - Kalau habis tanpa interaksi → window.location.href ke website PT
+        //   - Klik tombol "Batal" → cancel
+        //   - Klik tombol WA → cancel (user pilih jalur lain)
+        // ───────────────────────────────────────────────────────────────
+        let _redirectTimerId = null;
+        let _redirectIntervalId = null;
+        let _redirectCancelled = false;
+
+        function renderRedirectCountdown(ptName) {
+            const website = getWebsiteForPT(ptName);
+            // Tampilkan host saja (tanpa https://) supaya lebih clean di UI
+            let websiteDisplay = website;
+            try {
+                websiteDisplay = new URL(website).hostname.replace(/^www\./, '');
+            } catch(e) {}
+            return `
+                <div id="redirectBox" style="
+                    margin-top: 14px;
+                    background: #fef3c7;
+                    border: 1px solid #fcd34d;
+                    border-radius: 10px;
+                    padding: 14px 16px;
+                    text-align: center;
+                    font-size: 14px;
+                    color: #78350f;">
+                    <div style="margin-bottom: 8px;">
+                        <i class="fas fa-clock" style="margin-right:6px;"></i>
+                        Mengalihkan ke <strong>${websiteDisplay}</strong> dalam
+                        <strong id="redirectCounter" style="color:#b45309;">${REDIRECT_SECONDS}</strong> detik...
+                    </div>
+                    <button type="button" onclick="cancelRedirect()"
+                            style="background:#fff;border:1px solid #fcd34d;color:#78350f;
+                                   padding:6px 14px;border-radius:8px;font-size:13px;
+                                   cursor:pointer;font-weight:600;">
+                        Batal
+                    </button>
+                </div>`;
+        }
+
+        function startRedirectCountdown(ptName) {
+            const website = getWebsiteForPT(ptName);
+            let remaining = REDIRECT_SECONDS;
+            _redirectCancelled = false;
+
+            // Update counter setiap detik
+            _redirectIntervalId = setInterval(() => {
+                if (_redirectCancelled) return;
+                remaining -= 1;
+                const counterEl = document.getElementById('redirectCounter');
+                if (counterEl) counterEl.textContent = remaining;
+                if (remaining <= 0) clearInterval(_redirectIntervalId);
+            }, 1000);
+
+            // Trigger redirect setelah waktu habis
+            _redirectTimerId = setTimeout(() => {
+                if (_redirectCancelled) return;
+                window.location.href = website;
+            }, REDIRECT_SECONDS * 1000);
+        }
+
+        function cancelRedirect() {
+            _redirectCancelled = true;
+            if (_redirectTimerId) { clearTimeout(_redirectTimerId); _redirectTimerId = null; }
+            if (_redirectIntervalId) { clearInterval(_redirectIntervalId); _redirectIntervalId = null; }
+            // Update UI: ganti box jadi pesan dibatalkan
+            const box = document.getElementById('redirectBox');
+            if (box) {
+                box.style.background = '#f1f5f9';
+                box.style.borderColor = '#cbd5e1';
+                box.style.color = '#475569';
+                box.innerHTML = '<i class="fas fa-check" style="margin-right:6px;color:#16a34a;"></i> Redirect dibatalkan. Silakan jelajahi profil.';
+            }
+        }
+
+        async function loadData() {
+            if (!karyawanId) {
+                renderError('ID karyawan tidak ditemukan di QR Code ini.');
+                return;
+            }
+            try {
+                // Load profil karyawan
+                const res = await fetch(`${API_URL}/public/karyawan/${encodeURIComponent(karyawanId)}`);
+                if (!res.ok) throw new Error('Karyawan tidak ditemukan');
+                const k = await res.json();
+                renderProfile(k);
+
+                // Verifikasi token jika ada di URL
+                if (verifyToken) {
+                    // Tampil banner "sedang memverifikasi"
+                    const verifyArea = document.getElementById('verifyArea');
+                    verifyArea.innerHTML = renderVerifyBanner('checking', 'Memverifikasi kartu...', 'Sedang memeriksa keaslian kartu ID ini');
+
+                    const vRes = await fetch(`${API_URL}/verify?id=${encodeURIComponent(karyawanId)}&token=${encodeURIComponent(verifyToken)}`);
+                    const vData = await vRes.json();
+
+                    if (vData.valid) {
+                        const tgl = new Date().toLocaleString('id-ID');
+                        // Banner verifikasi di atas (tetap di posisi semula)
+                        verifyArea.innerHTML = renderVerifyBanner(
+                            'valid',
+                            '✓ Kartu ini TERVERIFIKASI dan ASLI',
+                            `Terdaftar di ${k.perusahaan || 'sistem'} · Dicek: ${tgl}`
+                        );
+                        // Tombol Chat WhatsApp + countdown auto-redirect ke website PT
+                        const waArea = document.getElementById('waButtonArea');
+                        if (waArea) {
+                            waArea.innerHTML =
+                                renderWhatsAppButton(k.nama, k.no_hp) +
+                                renderRedirectCountdown(k.perusahaan);
+                            // Mulai countdown setelah UI ter-render
+                            startRedirectCountdown(k.perusahaan);
+                        }
+                    } else {
+                        verifyArea.innerHTML = renderVerifyBanner(
+                            'invalid',
+                            '⚠ Kartu ini TIDAK VALID atau PALSU',
+                            vData.reason || 'Token tidak cocok dengan database'
+                        );
+                        // Kartu invalid → jangan munculin WA button & jangan auto-redirect
+                        // (defense: kartu palsu shouldn't direct to legit website either)
+                    }
+                }
+            } catch(e) {
+                renderError(e.message);
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>

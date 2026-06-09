@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengajuan Saya - Inventory & HR</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container h2 { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-bottom: 20px; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        tr:hover { background: #f8fafc; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-approved { background: #dcfce7; color: #15803d; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
+        .badge-cancelled { background: #f1f5f9; color: #64748b; }
+        .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty i { font-size: 48px; color: #cbd5e1; display: block; margin-bottom: 12px; }
+        .btn-cancel { background: none; border: 1px solid #dc2626; color: #dc2626; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        .btn-cancel:hover { background: #dc2626; color: white; }
+        .btn-detail { background: #1A4D8C; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>PT Wiratama Globalindo Jaya</h1>
+        <div class="navbar-menu">
+            <a href="dashboard-karyawan.html" data-page="dashboard-karyawan">Dashboard</a>
+            <a href="ajukan-izin.html" data-page="ajukan-izin">Ajukan Izin</a>
+            <a href="pengajuan-saya.html" data-page="pengajuan-saya">Pengajuan Saya</a>
+            <a href="profil-saya.html" data-page="profil-saya">Profil Saya</a>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+    <script>
+        (function() {
+            const path = window.location.pathname.split('/').pop().replace('.html', '');
+            document.querySelectorAll('.navbar-menu a[data-page]').forEach(a => {
+                if (a.dataset.page === path) a.classList.add('active');
+            });
+        })();
+    </script>
+
+    <div class="container">
+        <h2><i class="fas fa-list-alt"></i> Pengajuan Saya</h2>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal Ajuan</th>
+                        <th>Jenis</th>
+                        <th>Periode</th>
+                        <th>Jumlah Hari</th>
+                        <th>Status</th>
+                        <th>Catatan HR</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i>Memuat...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.href = 'index.html';
+
+        // Halaman ini khusus karyawan. Admin/HR tetap bisa akses untuk preview,
+        // tapi data yang ditampilkan akan terbatas (mereka tidak punya karyawan_id).
+        const _user = (() => { try { return JSON.parse(localStorage.getItem('auth_user')); } catch(e) { return null; } })();
+        if (_user && !_user.karyawan_id) {
+            // Tampilkan pesan ramah, redirect ke dashboard HR
+            if (confirm('Halaman ini khusus untuk karyawan dengan profil terdaftar. Akun Anda (' + _user.role + ') tidak memiliki data karyawan. Kembali ke Dashboard?')) {
+                window.location.href = ['admin','hr'].includes(_user.role) ? 'dashboard.html' : 'index.html';
+            }
+        }
+
+        function fmtDate(d) { return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }); }
+        function fmtJenis(j) { return j.replace(/_/g, ' '); }
+
+        async function load() {
+            const tbody = document.getElementById('tbody');
+            try {
+                const res = await apiFetch(`${API_URL}/me/pengajuan`);
+                const j = await res.json();
+                const data = j.data || [];
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i>Belum ada pengajuan.<br><a href="ajukan-izin.html">Buat pengajuan baru →</a></td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(p => `
+                    <tr>
+                        <td>${fmtDate(p.created_at)}</td>
+                        <td><strong>${fmtJenis(p.jenis_izin)}</strong></td>
+                        <td>${fmtDate(p.tanggal_mulai)} - ${fmtDate(p.tanggal_selesai)}</td>
+                        <td>${p.jumlah_hari} hari</td>
+                        <td><span class="badge badge-${p.status}">${p.status}</span></td>
+                        <td style="max-width:200px;font-size:12px;color:#64748b;">${p.catatan_hr || '-'}</td>
+                        <td>
+                            ${p.status === 'pending' ? `<button class="btn-cancel" onclick="cancelPengajuan(${p.id})">Batalkan</button>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">Gagal memuat data.</td></tr>';
+            }
+        }
+
+        async function cancelPengajuan(id) {
+            if (!confirm('Yakin batalkan pengajuan ini?')) return;
+            try {
+                const res = await apiFetch(`${API_URL}/me/pengajuan/${id}/cancel`, { method: 'POST' });
+                const j = await res.json();
+                if (j.success) {
+                    alert('✅ ' + j.message);
+                    load();
+                } else {
+                    alert('❌ ' + j.message);
+                }
+            } catch(e) { alert('Gagal membatalkan.'); }
+        }
+
+        load();
+    </script>
+</body>
+</html>

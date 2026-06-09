@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inbox Pengajuan - HR</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container h2 { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-bottom: 20px; }
+        .filters { background: #fff; padding: 16px 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+        .filters select { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: middle; }
+        tr:hover { background: #f8fafc; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-approved { background: #dcfce7; color: #15803d; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
+        .badge-cancelled { background: #f1f5f9; color: #64748b; }
+        .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty i { font-size: 48px; color: #cbd5e1; display: block; margin-bottom: 12px; }
+        .btn-action { padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; margin-right: 4px; }
+        .btn-approve { background: #15803d; color: white; }
+        .btn-reject { background: #dc2626; color: white; }
+        .btn-detail { background: #1A4D8C; color: white; }
+
+        .modal-bg { display: none !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99999; align-items: center; justify-content: center; padding: 20px; }
+        .modal-bg.show { display: flex !important; }
+        .modal-bg .modal { background: white !important; border-radius: 12px; padding: 24px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; display: block !important; position: relative !important; height: auto !important; backdrop-filter: none !important; animation: none !important; }
+        .modal h3 { margin-top: 0; color: #1A4D8C; }
+        .info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .info-row .label { flex: 0 0 140px; color: #64748b; font-size: 13px; }
+        .info-row .value { flex: 1; color: #1e293b; font-size: 14px; }
+        .modal textarea { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; min-height: 80px; margin-top: 8px; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .btn-cancel-modal { background: #f1f5f9; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>PT Wiratama Globalindo Jaya</h1>
+        <div class="navbar-menu">
+            <a href="dashboard.html" data-page="dashboard">Dashboard</a>
+            <a href="data-karyawan.html" data-page="data-karyawan">Karyawan</a>
+            <a href="inventaris.html" data-page="inventaris">Inventaris</a>
+            <a href="riwayat-pemakaian.html" data-page="riwayat-pemakaian">Riwayat</a>
+            <a href="inbox-pengajuan.html" data-page="inbox-pengajuan">Inbox Pengajuan</a>
+            <a href="manajemen-user.html" data-page="manajemen-user">Manajemen User</a>
+            <a href="laporan-bulanan.html" data-page="laporan-bulanan">Laporan Bulanan</a>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+    <script>
+        // Auto-set active class based on current page
+        (function() {
+            const path = window.location.pathname.split('/').pop().replace('.html', '');
+            document.querySelectorAll('.navbar-menu a[data-page]').forEach(a => {
+                if (a.dataset.page === path) a.classList.add('active');
+            });
+        })();
+    </script>
+
+    <div class="container">
+        <h2><i class="fas fa-inbox"></i> Inbox Pengajuan Izin</h2>
+
+        <div class="filters">
+            <label style="font-size:12px;color:#64748b;">FILTER:</label>
+            <select id="filterStatus">
+                <option value="pending">Pending (perlu review)</option>
+                <option value="">Semua Status</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="filterJenis">
+                <option value="">Semua Jenis</option>
+                <option value="cuti_tahunan">Cuti Tahunan</option>
+                <option value="sakit">Sakit</option>
+                <option value="izin_pribadi">Izin Pribadi</option>
+                <option value="cuti_melahirkan">Cuti Melahirkan</option>
+                <option value="cuti_menikah">Cuti Menikah</option>
+                <option value="wfh">WFH</option>
+                <option value="dinas_luar">Dinas Luar</option>
+            </select>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Karyawan</th>
+                        <th>Jenis</th>
+                        <th>Periode</th>
+                        <th>Hari</th>
+                        <th>Diajukan</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i>Memuat...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Detail -->
+    <div class="modal-bg" id="modalDetail">
+        <div class="modal">
+            <h3>Detail Pengajuan</h3>
+            <div id="detailContent"></div>
+            <div id="actionArea" style="margin-top:16px;"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel-modal" onclick="hideDetail()">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.href = 'index.html';
+
+        const user = getCurrentUser();
+        if (!['admin','hr'].includes(user?.role)) {
+            alert('Halaman ini khusus untuk HR/Admin.');
+            window.location.href = 'dashboard-karyawan.html';
+        }
+
+        let allData = [];
+        let currentDetailId = null;
+
+        function fmtDate(d) { return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }); }
+        function fmtJenis(j) { return j.replace(/_/g, ' '); }
+
+        async function load() {
+            const tbody = document.getElementById('tbody');
+            tbody.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-spinner fa-spin"></i>Memuat...</td></tr>';
+
+            const status = document.getElementById('filterStatus').value;
+            const jenis = document.getElementById('filterJenis').value;
+            const params = new URLSearchParams();
+            if (status) params.append('status', status);
+            if (jenis) params.append('jenis', jenis);
+
+            try {
+                const res = await apiFetch(`${API_URL}/pengajuan-izin?${params.toString()}`);
+                const j = await res.json();
+                allData = j.data || [];
+
+                if (allData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty"><i class="fas fa-inbox"></i>Tidak ada pengajuan.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = allData.map(p => `
+                    <tr>
+                        <td><strong>${p.nama_karyawan}</strong><br><small style="color:#94a3b8;">${p.divisi || '-'}</small></td>
+                        <td>${fmtJenis(p.jenis_izin)}</td>
+                        <td>${fmtDate(p.tanggal_mulai)} - ${fmtDate(p.tanggal_selesai)}</td>
+                        <td>${p.jumlah_hari}</td>
+                        <td>${fmtDate(p.created_at)}</td>
+                        <td><span class="badge badge-${p.status}">${p.status}</span></td>
+                        <td>
+                            <button class="btn-action btn-detail" onclick="showDetail(${p.id})">Detail</button>
+                            ${p.status === 'pending' ? `
+                                <button class="btn-action btn-approve" onclick="quickDecide(${p.id}, 'approve')">✓</button>
+                                <button class="btn-action btn-reject" onclick="quickDecide(${p.id}, 'reject')">✗</button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty">Gagal memuat data.</td></tr>';
+            }
+        }
+
+        function showDetail(id) {
+            const p = allData.find(x => x.id == id);
+            console.log('[showDetail] id:', id, 'found:', p);
+            if (!p) return;
+            currentDetailId = id;
+
+            const lampiranLink = p.lampiran ? `<a href="${p.lampiran}" target="_blank" style="color:#1A4D8C;">📎 Lihat Lampiran</a>` : '-';
+
+            document.getElementById('detailContent').innerHTML = `
+                <div class="info-row"><div class="label">Karyawan</div><div class="value"><strong>${p.nama_karyawan}</strong> (${p.karyawan_id})</div></div>
+                <div class="info-row"><div class="label">Divisi</div><div class="value">${p.divisi || '-'}</div></div>
+                <div class="info-row"><div class="label">Jenis</div><div class="value"><strong>${fmtJenis(p.jenis_izin)}</strong></div></div>
+                <div class="info-row"><div class="label">Periode</div><div class="value">${fmtDate(p.tanggal_mulai)} - ${fmtDate(p.tanggal_selesai)} (${p.jumlah_hari} hari)</div></div>
+                <div class="info-row"><div class="label">Alasan</div><div class="value">${p.alasan}</div></div>
+                <div class="info-row"><div class="label">Lampiran</div><div class="value">${lampiranLink}</div></div>
+                <div class="info-row"><div class="label">Status</div><div class="value"><span class="badge badge-${p.status}">${p.status}</span></div></div>
+                ${p.approved_at ? `<div class="info-row"><div class="label">Diputuskan</div><div class="value">${fmtDate(p.approved_at)} oleh ${p.approved_by_username}</div></div>` : ''}
+                ${p.catatan_hr ? `<div class="info-row"><div class="label">Catatan HR</div><div class="value">${p.catatan_hr}</div></div>` : ''}
+            `;
+
+            const actionArea = document.getElementById('actionArea');
+            if (p.status === 'pending') {
+                actionArea.innerHTML = `
+                    <label style="font-size:13px;font-weight:600;">Catatan untuk karyawan (opsional):</label>
+                    <textarea id="catatanHr" placeholder="Misal: Disetujui, jangan lupa serah terima tugas..."></textarea>
+                    <div class="modal-actions">
+                        <button class="btn-action btn-approve" onclick="decide('approve')"><i class="fas fa-check"></i> Approve</button>
+                        <button class="btn-action btn-reject" onclick="decide('reject')"><i class="fas fa-times"></i> Reject</button>
+                    </div>
+                `;
+            } else { actionArea.innerHTML = ''; }
+
+            document.getElementById('modalDetail').classList.add('show');
+        }
+
+        function hideDetail() {
+            document.getElementById('modalDetail').classList.remove('show');
+            currentDetailId = null;
+        }
+
+        async function decide(action) {
+            const catatan = document.getElementById('catatanHr')?.value || '';
+            await doDecide(currentDetailId, action, catatan);
+            hideDetail();
+        }
+
+        async function quickDecide(id, action) {
+            const verb = action === 'approve' ? 'menyetujui' : 'menolak';
+            if (!confirm(`Yakin ${verb} pengajuan ini?`)) return;
+            await doDecide(id, action, '');
+        }
+
+        async function doDecide(id, action, catatan) {
+            try {
+                const res = await apiFetch(`${API_URL}/pengajuan-izin/${id}/decide`, {
+                    method: 'POST',
+                    body: JSON.stringify({ action, catatan })
+                });
+                const j = await res.json();
+                if (j.success) { alert('✅ ' + j.message); load(); }
+                else alert('❌ ' + j.message);
+            } catch(e) { alert('Gagal memproses.'); }
+        }
+
+        document.getElementById('filterStatus').addEventListener('change', load);
+        document.getElementById('filterJenis').addEventListener('change', load);
+
+        load();
+    </script>
+</body>
+</html>

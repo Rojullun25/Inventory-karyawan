@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>License Management - Inventory Karyawan</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .container h2 { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-bottom: 8px; }
+        .subtitle { color: #fff; opacity: 0.9; margin-bottom: 20px; font-size: 14px; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #fff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .stat-card .num { font-size: 26px; font-weight: 700; color: #1A4D8C; }
+        .stat-card .lbl { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
+        .stat-card.green .num { color: #15803d; }
+        .stat-card.yellow .num { color: #ca8a04; }
+        .stat-card.red .num { color: #dc2626; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; background: #fff; padding: 14px 18px; border-radius: 10px; }
+        .filter-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .filter-group select, .filter-group input {
+            padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px;
+        }
+        .btn-primary { background: #1A4D8C; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-primary:hover { background: #2B6EB0; }
+
+        .license-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+        .license-card { background: #fff; padding: 18px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #cbd5e1; cursor: pointer; transition: all 0.2s; }
+        .license-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .license-card.active { border-left-color: #15803d; }
+        .license-card.reminder { border-left-color: #ca8a04; }
+        .license-card.warning { border-left-color: #ea580c; }
+        .license-card.critical { border-left-color: #dc2626; background: #fef2f2; }
+        .license-card.expired { border-left-color: #1f2937; background: #f3f4f6; }
+        .license-card.perpetual { border-left-color: #1A4D8C; }
+        .license-card.cancelled { opacity: 0.5; }
+
+        .lc-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; }
+        .lc-title { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0; }
+        .lc-vendor { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .lc-badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .badge-active { background: #dcfce7; color: #15803d; }
+        .badge-reminder { background: #fef9c3; color: #854d0e; }
+        .badge-warning { background: #fed7aa; color: #9a3412; }
+        .badge-critical { background: #fee2e2; color: #991b1b; }
+        .badge-expired { background: #1f2937; color: white; }
+        .badge-perpetual { background: #dbeafe; color: #1e40af; }
+        .badge-cancelled { background: #f1f5f9; color: #64748b; }
+
+        .lc-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+        .lc-row .key { color: #64748b; }
+        .lc-row .val { color: #1e293b; font-weight: 500; }
+
+        .seat-bar { background: #f1f5f9; border-radius: 6px; height: 8px; margin: 8px 0; overflow: hidden; }
+        .seat-fill { height: 100%; background: #1A4D8C; transition: width 0.3s; }
+        .seat-fill.full { background: #dc2626; }
+        .seat-fill.almost-full { background: #ea580c; }
+
+        .lc-actions { display: flex; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
+        .btn-sm { padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; flex: 1; text-align: center; text-decoration: none; }
+        .btn-detail { background: #1A4D8C; color: white; }
+        .btn-detail:hover { background: #2B6EB0; color: white; }
+        .btn-edit { background: #f59e0b; color: white; }
+        .btn-delete { background: #dc2626; color: white; }
+
+        .empty { text-align: center; padding: 60px 20px; color: #94a3b8; background: #fff; border-radius: 12px; }
+        .empty i { font-size: 48px; color: #cbd5e1; display: block; margin-bottom: 12px; }
+
+        /* Modal */
+        .modal-bg { display: none !important; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99999; align-items: center; justify-content: center; padding: 20px; }
+        .modal-bg.show { display: flex !important; }
+        .modal-bg .modal { background: white !important; border-radius: 12px; padding: 24px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; display: block !important; position: relative !important; height: auto !important; backdrop-filter: none !important; animation: none !important; }
+        .modal h3 { margin-top: 0; color: #1A4D8C; }
+        .modal label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; color: #334155; }
+        .modal input, .modal select, .modal textarea { width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: inherit; }
+        .modal textarea { min-height: 60px; resize: vertical; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .btn-cancel-modal { background: #f1f5f9; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    </style>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1A4D8C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PT Wiratama">
+    <link rel="apple-touch-icon" href="img/pwa/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="img/pwa/icon-192.png">
+</head>
+<body>
+    
+
+    <div class="container">
+        <h2><i class="fas fa-key"></i> License Management</h2>
+        <p class="subtitle">Kelola lisensi software perusahaan: Office 365, AutoCAD, SAP, Kaspersky, Tekla, dll.</p>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card"><div class="num" id="sTotal">-</div><div class="lbl">Total License</div></div>
+            <div class="stat-card green"><div class="num" id="sAktif">-</div><div class="lbl">Aktif</div></div>
+            <div class="stat-card yellow"><div class="num" id="sExpiring">-</div><div class="lbl">Expiring (30 hari)</div></div>
+            <div class="stat-card red"><div class="num" id="sExpired">-</div><div class="lbl">Sudah Expired</div></div>
+            <div class="stat-card"><div class="num" id="sInvestasi" style="font-size:16px;">-</div><div class="lbl">Total Investasi</div></div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="filter-group">
+                <label style="font-size:12px;color:#64748b;">FILTER:</label>
+                <select id="filterStatus">
+                    <option value="">Semua Status</option>
+                    <option value="active">Active</option>
+                    <option value="reminder">Reminder (30 hari)</option>
+                    <option value="warning">Warning (14 hari)</option>
+                    <option value="critical">Critical (7 hari)</option>
+                    <option value="expired">Expired</option>
+                </select>
+                <input type="text" id="filterSearch" placeholder="Cari nama software..." style="min-width:220px;">
+            </div>
+            <button class="btn-primary" onclick="showCreate()">
+                <i class="fas fa-plus"></i> Tambah License
+            </button>
+        </div>
+
+        <!-- License Grid -->
+        <div id="licenseList">
+            <div class="empty"><i class="fas fa-spinner fa-spin"></i>Memuat...</div>
+        </div>
+    </div>
+
+    <!-- Modal Create/Edit -->
+    <div class="modal-bg" id="modalForm">
+        <div class="modal">
+            <h3 id="modalTitle">Tambah License Baru</h3>
+
+            <div class="grid-2">
+                <div>
+                    <label>Nama Software *</label>
+                    <input type="text" id="fNama" placeholder="Office 365 Family">
+                </div>
+                <div>
+                    <label>Vendor</label>
+                    <input type="text" id="fVendor" placeholder="Microsoft">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <label>Versi</label>
+                    <input type="text" id="fVersi" placeholder="2024 / v22 / Family">
+                </div>
+                <div>
+                    <label>Tipe License</label>
+                    <select id="fTipe">
+                        <option value="per_user">Per User</option>
+                        <option value="per_device">Per Device</option>
+                        <option value="per_organization">Per Organization</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <label>Model Pembayaran</label>
+                    <select id="fModel">
+                        <option value="subscription_tahunan">Subscription Tahunan</option>
+                        <option value="subscription_bulanan">Subscription Bulanan</option>
+                        <option value="one_time">One-time / Perpetual</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Total Seat *</label>
+                    <input type="number" id="fSeat" min="1" value="1">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <label>Harga Total</label>
+                    <input type="number" id="fHargaTotal" placeholder="1500000">
+                </div>
+                <div>
+                    <label>Currency</label>
+                    <select id="fCurrency">
+                        <option value="IDR">IDR (Rupiah)</option>
+                        <option value="USD">USD (Dollar)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <label>Tanggal Pembelian</label>
+                    <input type="date" id="fTglBeli">
+                </div>
+                <div>
+                    <label>Tanggal Expired</label>
+                    <input type="date" id="fTglExp">
+                </div>
+            </div>
+
+            <label>Akun Master / Email Admin</label>
+            <input type="text" id="fAkunMaster" placeholder="parent@perusahaan.com">
+
+            <label>License Key / Serial Number</label>
+            <input type="text" id="fLicenseKey" placeholder="XXXX-XXXX-XXXX-XXXX">
+
+            <label>Vendor Contact</label>
+            <input type="text" id="fVendorContact" placeholder="081234567890 / sales@vendor.com">
+
+            <label>Catatan</label>
+            <textarea id="fCatatan" placeholder="Catatan tambahan..."></textarea>
+
+            <div id="fError" style="color:#dc2626;font-size:12px;margin-top:8px;display:none;"></div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel-modal" onclick="hideForm()">Batal</button>
+                <button class="btn-primary" onclick="submitForm()" id="btnSubmit">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script src="layout.js"></script>
+    <script src="pwa-register.js"></script>
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.href = 'index.html';
+
+        let allLicenses = [];
+        let editingId = null;
+
+        function escapeHtml(s) {
+            return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        function fmtCurrency(amount, currency) {
+            if (!amount) return '-';
+            const formatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 });
+            return (currency === 'USD' ? '$' : 'Rp ') + formatter.format(amount);
+        }
+        function fmtDate(d) {
+            if (!d) return '-';
+            return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+        function urgencyLabel(u) {
+            const map = {
+                active: 'Active', reminder: 'Reminder', warning: 'Warning',
+                critical: 'Critical', expired: 'Expired', perpetual: 'Perpetual',
+                cancelled: 'Cancelled'
+            };
+            return map[u] || u;
+        }
+
+        async function loadStats() {
+            try {
+                const res = await apiFetch(`${API_URL}/license/stats/summary`);
+                const j = await res.json();
+                if (j.success) {
+                    const d = j.data;
+                    document.getElementById('sTotal').textContent = d.total || 0;
+                    document.getElementById('sAktif').textContent = d.aktif || 0;
+                    document.getElementById('sExpiring').textContent = d.expiring_30 || 0;
+                    document.getElementById('sExpired').textContent = d.overdue || 0;
+                    document.getElementById('sInvestasi').textContent = fmtCurrency(d.total_investasi, 'IDR');
+                }
+            } catch(e) {}
+        }
+
+        async function load() {
+            try {
+                const res = await apiFetch(`${API_URL}/license`);
+                const j = await res.json();
+                allLicenses = j.data || [];
+                render();
+                loadStats();
+            } catch(e) {
+                document.getElementById('licenseList').innerHTML = '<div class="empty">Gagal memuat data.</div>';
+            }
+        }
+
+        function render() {
+            const status = document.getElementById('filterStatus').value;
+            const search = document.getElementById('filterSearch').value.toLowerCase();
+
+            let filtered = allLicenses;
+            if (status) filtered = filtered.filter(l => l.urgency === status);
+            if (search) filtered = filtered.filter(l =>
+                (l.nama_software || '').toLowerCase().includes(search) ||
+                (l.vendor || '').toLowerCase().includes(search)
+            );
+
+            const div = document.getElementById('licenseList');
+            if (filtered.length === 0) {
+                div.innerHTML = '<div class="empty"><i class="fas fa-key"></i>Belum ada license.<br>Klik "Tambah License" untuk mulai.</div>';
+                return;
+            }
+
+            div.innerHTML = '<div class="license-grid">' + filtered.map(l => {
+                const seatPct = l.total_seat ? Math.round((l.terpakai / l.total_seat) * 100) : 0;
+                const seatClass = seatPct >= 100 ? 'full' : seatPct >= 80 ? 'almost-full' : '';
+                const expiredText = l.tanggal_expired
+                    ? (l.days_to_expired < 0
+                        ? `<span style="color:#dc2626;">Expired ${Math.abs(l.days_to_expired)} hari lalu</span>`
+                        : `${fmtDate(l.tanggal_expired)} (${l.days_to_expired} hari lagi)`)
+                    : 'Perpetual / One-time';
+
+                return `
+                    <div class="license-card ${l.urgency}">
+                        <div class="lc-header">
+                            <div>
+                                <h3 class="lc-title">${escapeHtml(l.nama_software)}</h3>
+                                <div class="lc-vendor">${escapeHtml(l.vendor) || '-'} · ${l.tipe_license.replace('_', ' ')}</div>
+                            </div>
+                            <span class="lc-badge badge-${l.urgency}">${urgencyLabel(l.urgency)}</span>
+                        </div>
+
+                        <div class="lc-row">
+                            <span class="key">Seat Terpakai</span>
+                            <span class="val">${l.terpakai} / ${l.total_seat} (${seatPct}%)</span>
+                        </div>
+                        <div class="seat-bar">
+                            <div class="seat-fill ${seatClass}" style="width: ${seatPct}%"></div>
+                        </div>
+
+                        <div class="lc-row"><span class="key">Expired</span><span class="val">${expiredText}</span></div>
+                        <div class="lc-row"><span class="key">Harga</span><span class="val">${fmtCurrency(l.harga_total, l.currency)}</span></div>
+                        ${l.akun_master ? `<div class="lc-row"><span class="key">Master</span><span class="val" style="font-size:11px;">${escapeHtml(l.akun_master)}</span></div>` : ''}
+
+                        <div class="lc-actions">
+                            <a href="license-detail.html?id=${l.id}" class="btn-sm btn-detail">📋 Detail & Assign</a>
+                            <button class="btn-sm btn-edit" onclick="showEdit(${l.id})">Edit</button>
+                            <button class="btn-sm btn-delete" onclick="hapusLicense(${l.id})">Hapus</button>
+                        </div>
+                    </div>
+                `;
+            }).join('') + '</div>';
+        }
+
+        function showCreate() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'Tambah License Baru';
+            ['fNama','fVendor','fVersi','fSeat','fHargaTotal','fTglBeli','fTglExp','fAkunMaster','fLicenseKey','fVendorContact','fCatatan'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('fSeat').value = '1';
+            document.getElementById('fTipe').value = 'per_user';
+            document.getElementById('fModel').value = 'subscription_tahunan';
+            document.getElementById('fCurrency').value = 'IDR';
+            document.getElementById('fError').style.display = 'none';
+            document.getElementById('modalForm').classList.add('show');
+        }
+
+        function showEdit(id) {
+            const l = allLicenses.find(x => x.id === id);
+            if (!l) return;
+            editingId = id;
+            document.getElementById('modalTitle').textContent = `Edit: ${l.nama_software}`;
+            document.getElementById('fNama').value = l.nama_software || '';
+            document.getElementById('fVendor').value = l.vendor || '';
+            document.getElementById('fVersi').value = l.versi || '';
+            document.getElementById('fTipe').value = l.tipe_license || 'per_user';
+            document.getElementById('fModel').value = l.model_pembayaran || 'subscription_tahunan';
+            document.getElementById('fSeat').value = l.total_seat || 1;
+            document.getElementById('fHargaTotal').value = l.harga_total || '';
+            document.getElementById('fCurrency').value = l.currency || 'IDR';
+            document.getElementById('fTglBeli').value = l.tanggal_pembelian || '';
+            document.getElementById('fTglExp').value = l.tanggal_expired || '';
+            document.getElementById('fAkunMaster').value = l.akun_master || '';
+            document.getElementById('fLicenseKey').value = l.license_key || '';
+            document.getElementById('fVendorContact').value = l.vendor_contact || '';
+            document.getElementById('fCatatan').value = l.catatan || '';
+            document.getElementById('fError').style.display = 'none';
+            document.getElementById('modalForm').classList.add('show');
+        }
+
+        function hideForm() {
+            document.getElementById('modalForm').classList.remove('show');
+            editingId = null;
+        }
+
+        async function submitForm() {
+            const data = {
+                nama_software: document.getElementById('fNama').value.trim(),
+                vendor: document.getElementById('fVendor').value.trim(),
+                versi: document.getElementById('fVersi').value.trim(),
+                tipe_license: document.getElementById('fTipe').value,
+                model_pembayaran: document.getElementById('fModel').value,
+                total_seat: document.getElementById('fSeat').value,
+                harga_total: document.getElementById('fHargaTotal').value || null,
+                currency: document.getElementById('fCurrency').value,
+                tanggal_pembelian: document.getElementById('fTglBeli').value || null,
+                tanggal_expired: document.getElementById('fTglExp').value || null,
+                akun_master: document.getElementById('fAkunMaster').value.trim(),
+                license_key: document.getElementById('fLicenseKey').value.trim(),
+                vendor_contact: document.getElementById('fVendorContact').value.trim(),
+                catatan: document.getElementById('fCatatan').value.trim()
+            };
+
+            if (!data.nama_software) {
+                document.getElementById('fError').textContent = 'Nama software wajib diisi.';
+                document.getElementById('fError').style.display = 'block';
+                return;
+            }
+
+            try {
+                const url = editingId ? `${API_URL}/license/${editingId}` : `${API_URL}/license`;
+                const method = editingId ? 'PUT' : 'POST';
+                const res = await apiFetch(url, { method, body: JSON.stringify(data) });
+                const j = await res.json();
+                if (j.success) {
+                    alert('✅ ' + j.message);
+                    hideForm();
+                    load();
+                } else {
+                    document.getElementById('fError').textContent = j.message;
+                    document.getElementById('fError').style.display = 'block';
+                }
+            } catch(e) {
+                document.getElementById('fError').textContent = 'Gagal menyimpan.';
+                document.getElementById('fError').style.display = 'block';
+            }
+        }
+
+        async function hapusLicense(id) {
+            const l = allLicenses.find(x => x.id === id);
+            if (!confirm(`Hapus license "${l?.nama_software}"?\nSemua assignment akan ikut terhapus.`)) return;
+            try {
+                const res = await apiFetch(`${API_URL}/license/${id}`, { method: 'DELETE' });
+                const j = await res.json();
+                if (j.success) { alert('✅ ' + j.message); load(); }
+                else alert('❌ ' + j.message);
+            } catch(e) { alert('❌ Gagal menghapus.'); }
+        }
+
+        document.getElementById('filterStatus').addEventListener('change', render);
+        document.getElementById('filterSearch').addEventListener('input', render);
+
+        load();
+    </script>
+</body>
+</html>
